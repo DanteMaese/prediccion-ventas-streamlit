@@ -4,7 +4,7 @@ import numpy as np
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 # Definir la ruta del archivo como variable para facilidad de ajuste
-RUTA_ARCHIVO = "C:\\Users\\dante\\Downloads\\BD Ventas Tec Store - Campus MTY.xlsx"
+RUTA_ARCHIVO = "BD Ventas Tec Store - Campus MTY.xlsx"
 
 # --- Funciones de procesamiento con caché ---
 @st.cache_data
