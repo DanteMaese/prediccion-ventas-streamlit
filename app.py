@@ -194,19 +194,26 @@ if not df_filtrado.empty:
 
     # Configurar el diseño del gráfico
     fig.update_layout(
-        title="Comparación: Total Predicciones vs. Stock Disponible",
-        xaxis_title="",
+        title={
+            'text': "Comparación: Total Predicciones vs. Stock Disponible",
+            'y': 0.9,  # Ubicación vertical del título
+            'x': 0.5,  # Centrar el título horizontalmente
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
+        xaxis_title="",  # No se requiere título en el eje X
         yaxis_title="Unidades",
         barmode='group',  # Mostrar las barras agrupadas
         legend=dict(
             orientation="h",  # Leyenda horizontal
             yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
+            y=-0.3,  # Mover la leyenda debajo del gráfico
+            xanchor="center",
+            x=0.5  # Centrar la leyenda
         ),
         font=dict(size=12),
-        height=380  # Altura del gráfico
+        height=300,  # Altura ajustada
+        margin=dict(t=50, b=50)  # Reducir márgenes para que quepa mejor
     )
 
     # Mostrar el gráfico
