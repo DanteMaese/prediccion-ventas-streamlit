@@ -230,6 +230,10 @@ df_adicional = df[['GTIN', 'Costo Unitario', 'Piezas']].copy()
 df_adicional['Promedio Mensual'] = df_adicional.groupby('GTIN')['Piezas'].transform('mean')
 df_adicional = df_adicional[['GTIN', 'Promedio Mensual', 'Costo Unitario']].drop_duplicates()
 
+# Asegurar que GTIN en ambos DataFrames sea del mismo tipo
+df_filtrado['GTIN'] = df_filtrado['GTIN'].astype('int64')
+df_adicional['GTIN'] = df_adicional['GTIN'].astype('int64')
+
 # Merge con el DataFrame Filtrado
 df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 
