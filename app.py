@@ -176,8 +176,8 @@ if not df_filtrado.empty:
     fig.add_trace(go.Bar(
         x=["Unidades Predichas"],
         y=[total_predicciones],
-        text=[f"{total_predicciones:.2f}"],
-        textposition='outside',  # Mostrar los valores fuera de la barra
+        text=[f"{total_predicciones:.2f}"],  # Texto dentro de la barra
+        textposition='inside',  # Mostrar los valores dentro de la barra
         name="Unidades Predichas",
         marker_color='blue'  # Color de la barra
     ))
@@ -187,7 +187,7 @@ if not df_filtrado.empty:
         x=["Stock Disponible"],
         y=[total_stock],
         text=[f"{total_stock:.2f}"],
-        textposition='outside',
+        textposition='inside',  # Mostrar los valores dentro de la barra
         name="Stock Disponible",
         marker_color='green'
     ))
