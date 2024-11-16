@@ -63,10 +63,8 @@ forecast_df = forecast_df.merge(info_producto, on='GTIN', how='left')
 
 #######
 
-print("Columnas actuales en forecast_df:", forecast_df.columns)
-
 # Validar que las columnas necesarias existen en forecast_df
-columnas_requeridas = ['Fecha', 'Prediccion de Unidades', 'GTIN', 'Campus']
+columnas_requeridas = ['GTIN', 'Campus', 'Fecha', 'Predicción de Unidades']
 for col in columnas_requeridas:
     if col not in forecast_df.columns:
         print(f"Columnas disponibles: {forecast_df.columns}")
