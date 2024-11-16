@@ -253,10 +253,14 @@ df_filtrado['Exceso de Stock'] = df_filtrado['Stock'] > (df_filtrado['Total Pred
 # Verificar que existen filas con exceso de stock
 productos_a_rematar = df_filtrado[df_filtrado['Exceso de Stock']]
 
+# Validar si hay productos a rematar
 if not productos_a_rematar.empty:
-    # Asegurarse de que los datos sean adecuados para el gráfico
+    # Validar que las columnas necesarias están presentes
+    st.write("Verificando datos antes de graficar...")
+    st.write(productos_a_rematar[['Producto', 'Total Predicciones', 'Stock']].head())  # Mostrar estructura
+
+    # Gráfico de Total Predicciones vs. Stock
     if 'Producto' in productos_a_rematar.columns and 'Total Predicciones' in productos_a_rematar.columns and 'Stock' in productos_a_rematar.columns:
-        # Gráfico de Total Predicciones vs. Stock
         fig = px.bar(
             productos_a_rematar,
             x='Producto',
@@ -279,6 +283,8 @@ if not productos_a_rematar.empty:
             font=dict(size=12)  # Tamaño de fuente consistente
         )
         st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.error("Faltan columnas necesarias en el DataFrame para graficar.")
 
     # Tabla Complementaria
     st.subheader("Detalles de Productos a Rematar")
