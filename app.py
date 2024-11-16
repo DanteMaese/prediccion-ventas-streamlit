@@ -103,7 +103,7 @@ forecast_df['GTIN - Producto'] = forecast_df['GTIN'].astype(str) + " - " + forec
 
 # Campo de selección múltiple con instrucciones
 productos_seleccionados = st.multiselect(
-    "Selecciona uno o varios productos usando la tecla CTRL para buscar productos (GTIN - Producto):",
+    ""Escribe el nombre de un producto, selecciona uno de la lista o elige varios productos.",
     options=forecast_df['GTIN - Producto'].unique()
 )
 
@@ -131,3 +131,40 @@ if not prediccion_productos.empty:
     st.dataframe(styled_df, use_container_width=True)
 else:
     st.write("No se encontraron predicciones para los productos seleccionados.")
+
+
+    import streamlit as st
+import pandas as pd
+import numpy as np
+
+# --- Gráfico 1: Comparación de Stock vs Unidades Predichas ---
+st.subheader("Comparación de Stock vs Unidades Predichas")
+st.bar_chart(data=prediccion_productos.set_index('Producto')[['Stock', 'Predicción de Unidades']])
+
+# --- Gráfico 2: Productos con Riesgo de Quedarse Sin Stock ---
+st.subheader("Productos con Riesgo de Quedarse Sin Stock")
+productos_riesgo = prediccion_productos[prediccion_productos['Predicción de Unidades'] > prediccion_productos['Stock']]
+if not productos_riesgo.empty:
+    st.bar_chart(data=productos_riesgo.set_index('Producto')['Predicción de Unidades'])
+else:
+    st.write("No hay productos con riesgo de quedarse sin stock.")
+
+# --- Gráfico 3: Predicciones de Ventas por Campus ---
+st.subheader("Predicciones de Ventas por Campus")
+ventas_por_campus = prediccion_productos.groupby('Campus')['Predicción de Unidades'].sum().reset_index()
+st.bar_chart(data=ventas_por_campus.set_index('Campus'))
+
+# --- Gráfico 4: Variación de Predicciones a lo Largo del Tiempo ---
+st.subheader("Variación de Predicciones a lo Largo del Tiempo")
+producto_seleccionado = st.selectbox("Seleccione un producto para ver tendencias:", prediccion_productos['Producto'].unique())
+prediccion_producto = prediccion_productos[prediccion_productos['Producto'] == producto_seleccionado]
+if not prediccion_producto.empty:
+    st.line_chart(data=prediccion_producto.set_index('Fecha')['Predicción de Unidades'])
+else:
+    st.write("No hay datos de predicción para el producto seleccionado.")
+
+# --- Gráfico 5: Porcentaje de Stock Utilizado ---
+st.subheader("Porcentaje de Stock Utilizado")
+prediccion_productos['Porcentaje Utilizado'] = (prediccion_productos['Predicción de Unidades'] / prediccion_productos['Stock']) * 100
+prediccion_productos['Porcentaje Utilizado'] = prediccion_productos['Porcentaje Utilizado'].fillna(0)  # Manejar divisiones por cero
+st.bar_chart(data=prediccion_productos.set_index('Producto')['Porcentaje Utilizado'])
