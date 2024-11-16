@@ -225,27 +225,16 @@ else:
 
 # --- Plot 2: Análisis de Liquidación ---
 
-# Extraer las columnas necesarias del archivo original
-df_adicional = df[['GTIN', 'Piezas', 'Precio Unitario', 'Costo Unitario']].copy()
+# Reemplazar valores NaN en la columna 'Stock' con 0.00
+df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0.00)
 
-# Calcular el total de piezas por GTIN
-df_adicional = df_adicional.groupby('GTIN', as_index=False).agg(
-    Total_Piezas=('Piezas', 'sum'),
-    Precio_Unitario=('Precio Unitario', 'first'),  # Asume que el precio unitario es constante para cada GTIN
-    Costo_Unitario=('Costo Unitario', 'first')  # Asume que el costo unitario es constante para cada GTIN
-)
-
-# Asegurarnos de que GTIN en ambos DataFrames sea del mismo tipo
-df_filtrado['GTIN'] = df_filtrado['GTIN'].astype('int64')
-df_adicional['GTIN'] = df_adicional['GTIN'].astype('int64')
-
-# Merge para combinar la información adicional con df_filtrado
-df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
+# Renombrar la columna 'Total_Piezas' a 'Piezas_Vendidas'
+df_filtrado.rename(columns={'Total_Piezas': 'Piezas_Vendidas'}, inplace=True)
 
 # Seleccionar columnas relevantes para visualización
 columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 
                          'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 
-                         'Stock', 'Total_Piezas', 'Precio_Unitario', 'Costo_Unitario']
+                         'Stock', 'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario']
 
 # Mostrar el DataFrame actualizado en Streamlit
 if not df_filtrado.empty:
@@ -256,13 +245,14 @@ if not df_filtrado.empty:
     
     # Formatear columnas para visualización
     columnas_formatear = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 
-                          'Total_Piezas', 'Precio_Unitario', 'Costo_Unitario', 'Stock']
+                          'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario', 'Stock']
     df_filtrado[columnas_formatear] = df_filtrado[columnas_formatear].applymap(lambda x: "{:.2f}".format(x) if isinstance(x, (int, float)) else x)
     
     # Mostrar DataFrame con formato mejorado
     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 else:
     st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
+
 
 
 
