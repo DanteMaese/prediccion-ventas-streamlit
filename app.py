@@ -92,6 +92,10 @@ for columna in ['Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']:
     if columna not in forecast_consolidado.columns:
         forecast_consolidado[columna] = 0
 
+# Asegurarse de que GTIN en forecast_df y stock_df esté en el mismo formato
+forecast_df['GTIN'] = forecast_df['GTIN'].astype('int64')  # Convertir GTIN en forecast_df a int
+stock_df['GTIN'] = stock_df['GTIN'].astype('int64')  # Convertir GTIN en stock_df a int
+
 # --- Cargar el archivo de stock y realizar el join ---
 # Asegurarse de que GTIN en ambos DataFrames sea del mismo tipo
 forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
