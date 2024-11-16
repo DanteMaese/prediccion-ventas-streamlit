@@ -162,8 +162,6 @@ else:
 
 # Inicio Parte 4
 
-# Inicio Parte 4 - Visualización
-
 import plotly.graph_objects as go
 
 # Cálculo de KPIs
