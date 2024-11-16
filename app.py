@@ -162,6 +162,8 @@ else:
 
 # Inicio Parte 4
 
+# -- Plot 1
+
 import plotly.graph_objects as go
 
 if not df_filtrado.empty:
@@ -220,5 +222,52 @@ if not df_filtrado.empty:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Por favor, selecciona un producto o categoría para visualizar las predicciones.")
+
+# -- Plot 2
+
+# Enriquecer el DataFrame con datos adicionales
+df_adicional = df[['GTIN', 'Costo Unitario', 'Piezas']].copy()
+df_adicional['Promedio Mensual'] = df_adicional.groupby('GTIN')['Piezas'].transform('mean')
+df_adicional = df_adicional[['GTIN', 'Promedio Mensual', 'Costo Unitario']].drop_duplicates()
+
+# Merge con el DataFrame Filtrado
+df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
+
+# Calcular el Precio de Remate
+df_filtrado['Precio de Remate'] = df_filtrado['Costo Unitario'] * 1.2
+
+# Filtrar productos con exceso de stock
+productos_a_rematar = df_filtrado[df_filtrado['Exceso de Stock']]
+
+if not productos_a_rematar.empty:
+    # Gráfico de Total Predicciones vs. Stock
+    fig = px.bar(
+        productos_a_rematar,
+        x='Producto',
+        y=['Total Predicciones', 'Stock'],
+        title="Análisis de Liquidación: Productos con Exceso de Stock",
+        labels={'value': 'Unidades', 'variable': 'Concepto'},
+        barmode='group',
+        text_auto=True
+    )
+    fig.update_layout(
+        xaxis_title="Productos",
+        yaxis_title="Unidades",
+        legend_title="Concepto",
+        height=400,
+        margin=dict(t=50, b=50)
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Tabla Complementaria
+    st.subheader("Detalles de Productos a Rematar")
+    columnas_tabla = ['GTIN', 'Producto', 'Stock', 'Costo Unitario', 'Precio de Remate']
+    st.dataframe(productos_a_rematar[columnas_tabla].style.format({
+        'Costo Unitario': '${:.2f}',
+        'Precio de Remate': '${:.2f}'
+    }), use_container_width=True)
+else:
+    st.write("No se encontraron productos con exceso de stock para liquidar.")
+
 
 # Final Parte 4
