@@ -164,42 +164,52 @@ else:
 
 import plotly.graph_objects as go
 
-# Cálculo de KPIs
 if not df_filtrado.empty:
+    # Calcular totales
     total_predicciones = df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum().sum()
     total_stock = df_filtrado['Stock'].astype(float).sum()
 
-    # Crear un gráfico de barras horizontales para comparar Predicción vs. Stock
+    # Crear el gráfico de barras
     fig = go.Figure()
 
+    # Barra de predicciones
     fig.add_trace(go.Bar(
-        x=[total_predicciones],
-        y=["Unidades Predichas"],
+        x=["Unidades Predichas"],
+        y=[total_predicciones],
+        text=[f"{total_predicciones:.2f}"],
+        textposition='outside',  # Mostrar los valores fuera de la barra
         name="Unidades Predichas",
-        orientation='h',
-        marker=dict(color='blue')
+        marker_color='blue'  # Color de la barra
     ))
 
+    # Barra de stock
     fig.add_trace(go.Bar(
-        x=[total_stock],
-        y=["Unidades Predichas"],
+        x=["Stock Disponible"],
+        y=[total_stock],
+        text=[f"{total_stock:.2f}"],
+        textposition='outside',
         name="Stock Disponible",
-        orientation='h',
-        marker=dict(color='green')
+        marker_color='green'
     ))
 
-    # Personalizar el diseño del gráfico
+    # Configurar el diseño del gráfico
     fig.update_layout(
         title="Comparación: Total Predicciones vs. Stock Disponible",
-        xaxis=dict(title="Unidades"),
-        yaxis=dict(title=""),
-        barmode='group',
-        height=300,
-        margin=dict(l=40, r=40, t=50, b=30),
-        showlegend=True
+        xaxis_title="Categoría",
+        yaxis_title="Unidades",
+        barmode='group',  # Mostrar las barras agrupadas
+        legend=dict(
+            orientation="h",  # Leyenda horizontal
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        font=dict(size=12),
+        height=400  # Altura del gráfico
     )
 
-    # Mostrar gráfico en Streamlit
+    # Mostrar el gráfico
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Por favor, selecciona un producto o categoría para visualizar las predicciones.")
