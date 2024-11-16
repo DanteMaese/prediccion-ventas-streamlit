@@ -71,6 +71,24 @@ forecast_df = forecast_df.merge(info_producto, on='GTIN', how='left')
 
 # Inicio Parte 3
 
+# Definir la ruta del archivo BD Stock
+RUTA_STOCK = "BD Stock.xlsx"
+
+# --- Cargar el archivo de stock y realizar el join ---
+@st.cache_data
+def cargar_stock():
+    """Carga los datos de stock desde el archivo BD Stock.xlsx."""
+    try:
+        stock_df = pd.read_excel(RUTA_STOCK)  # Usar la ruta definida para el archivo de stock
+        stock_df['GTIN'] = stock_df['GTIN'].astype('int64')  # Convertir GTIN a int
+        return stock_df
+    except FileNotFoundError:
+        st.error(f"El archivo '{RUTA_STOCK}' no se encuentra. Verifica que esté en el repositorio.")
+        return pd.DataFrame()
+
+# Cargar los datos de stock
+stock_df = cargar_stock()
+
 # Consolidar las predicciones en columnas por fecha
 forecast_consolidado = forecast_df.pivot_table(
     index=['GTIN', 'Producto', 'Categoría', 'Campus'],  # Incluir Producto y Categoría en el índice
