@@ -70,15 +70,14 @@ forecast_pivot = forecast_df.pivot_table(
     aggfunc='sum'
 ).reset_index()
 
-# Renombrar las columnas de fecha para un formato claro
-forecast_pivot.rename(
-    columns={
-        '2024-09-30': 'Septiembre 2024',
-        '2024-10-31': 'Octubre 2024',
-        '2024-11-30': 'Noviembre 2024'
-    },
-    inplace=True
-)
+# Renombrar columnas si las fechas existen
+fechas_mapeo = {
+    '2024-09-30': 'Septiembre 2024',
+    '2024-10-31': 'Octubre 2024',
+    '2024-11-30': 'Noviembre 2024'
+}
+
+forecast_pivot.rename(columns={col: fechas_mapeo[col] for col in fechas_mapeo if col in forecast_pivot.columns}, inplace=True)
 
 # --- Cargar el archivo de stock y realizar el join ---
 @st.cache_data
