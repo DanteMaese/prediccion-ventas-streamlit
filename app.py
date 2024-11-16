@@ -116,9 +116,10 @@ forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], o
 st.title("Predicción Consolidada de Ventas - Campus MTY")
 
 # Filtros para Producto y Categoría
+# st.subheader("Filtros para la Predicción de Ventas")
 productos_seleccionados = st.multiselect(
     "Escribe o selecciona uno o varios productos:",
-    options=sorted(forecast_consolidado['Producto'].unique())  # Ordenar alfabéticamente
+    options=forecast_consolidado['Producto'].unique()
 )
 
 categorias_seleccionadas = st.multiselect(
@@ -135,28 +136,25 @@ if productos_seleccionados:
 if categorias_seleccionadas:
     df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(categorias_seleccionadas)]
 
-# Mostrar el DataFrame solo si hay algo seleccionado
-if not productos_seleccionados and not categorias_seleccionadas:
-    st.write("Selecciona al menos un producto o categoría para ver las predicciones.")
-else:
-    # Seleccionar columnas relevantes
-    columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
+# Seleccionar columnas relevantes
+columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
+
+# Formatear y mostrar el DataFrame
+if not df_filtrado.empty:
+    st.subheader("Predicción Consolidada para los Filtros Seleccionados")
     
-    if not df_filtrado.empty:
-        st.subheader("Predicción Consolidada para los Filtros Seleccionados")
-        
-        # Convertir el GTIN a string para evitar formato numérico con comas
-        df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
-        
-        # Formatear columnas de predicciones para mostrar dos decimales
-        columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
-        for columna in columnas_prediccion:
-            df_filtrado[columna] = df_filtrado[columna].map("{:.2f}".format)
-        
-        # Mostrar el DataFrame con formato mejorado
-        st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
-    else:
-        st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
+    # Convertir el GTIN a string para evitar formato numérico con comas
+    df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
+    
+    # Formatear columnas de predicciones para mostrar dos decimales
+    columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
+    for columna in columnas_prediccion:
+        df_filtrado[columna] = df_filtrado[columna].map("{:.2f}".format)
+    
+    # Mostrar el DataFrame con formato mejorado
+    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+else:
+    st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
     
 # Final Parte 3
 
