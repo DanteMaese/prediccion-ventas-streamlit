@@ -291,4 +291,50 @@ if not df_filtrado.empty:
 else:
     st.write("No se encontraron datos para los filtros seleccionados.")
 
+import plotly.express as px
+
+# Crear un DataFrame con solo los productos marcados para remate
+productos_a_rematar = df_filtrado[df_filtrado['Rematar']]
+
+if not productos_a_rematar.empty:
+    # Crear un DataFrame para el gráfico
+    df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock', 'Precio de Remate']].copy()
+    
+    # Convertir Precio de Remate a float para graficar
+    df_plot['Precio de Remate'] = df_plot['Precio de Remate'].astype(float)
+
+    # Crear el gráfico de barras agrupadas
+    fig = px.bar(
+        df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock', 'Precio de Remate']),
+        x='Producto',
+        y='value',
+        color='variable',
+        title="Análisis de Liquidación: Precio de Remate vs. Inventario y Predicciones",
+        labels={'value': 'Valores', 'variable': 'Métricas'},
+        barmode='group',
+        text_auto=True
+    )
+
+    # Ajustar el diseño del gráfico
+    fig.update_layout(
+        xaxis_title="Productos",
+        yaxis_title="Valores",
+        legend_title="Métricas",
+        height=400,
+        margin=dict(t=50, b=50),
+        font=dict(size=12)
+    )
+
+    # Mostrar el gráfico en Streamlit
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Mostrar detalles adicionales
+    st.subheader("Detalles de Productos a Rematar")
+    columnas_tabla = ['GTIN', 'Producto', 'Stock', 'Piezas_Vendidas', 'Precio de Remate']
+    st.dataframe(productos_a_rematar[columnas_tabla].style.format({
+        'Precio de Remate': '${:.2f}'
+    }), use_container_width=True)
+else:
+    st.write("No se encontraron productos con exceso de stock para liquidar.")
+
 # Final Parte 4
