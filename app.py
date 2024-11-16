@@ -105,16 +105,33 @@ fechas_mapeo = {
 }
 forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
 
-# Asegurarse de que GTIN en forecast_df y stock_df esté en el mismo formato
-forecast_df['GTIN'] = forecast_df['GTIN'].astype('int64')  # Convertir GTIN en forecast_df a int
-stock_df['GTIN'] = stock_df['GTIN'].astype('int64')  # Convertir GTIN en stock_df a int
-
-# --- Cargar el archivo de stock y realizar el join ---
+# Asegurarse de que GTIN en ambos DataFrames esté en el mismo formato
 forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
 stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 
 # Realizar el join para agregar el stock
 forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
+
+# Filtros para Producto y Categoría
+st.subheader("Filtros para la Predicción de Ventas")
+productos_seleccionados = st.multiselect(
+    "Escribe o selecciona uno o varios productos:",
+    options=forecast_consolidado['Producto'].unique()
+)
+
+categorias_seleccionadas = st.multiselect(
+    "Escribe o selecciona una o varias categorías:",
+    options=forecast_consolidado['Categoría'].unique()
+)
+
+# Aplicar los filtros al DataFrame consolidado
+df_filtrado = forecast_consolidado.copy()
+
+if productos_seleccionados:
+    df_filtrado = df_filtrado[df_filtrado['Producto'].isin(productos_seleccionados)]
+
+if categorias_seleccionadas:
+    df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(categorias_seleccionadas)]
 
 # Mostrar resultados en Streamlit
 st.title("Predicción Consolidada de Ventas - Campus MTY")
@@ -122,37 +139,23 @@ st.title("Predicción Consolidada de Ventas - Campus MTY")
 # Seleccionar columnas relevantes
 columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
 
-# Formatear el DataFrame
-if not forecast_consolidado.empty:
-    st.subheader("Predicción Consolidada para los Productos Seleccionados")
+# Formatear y mostrar el DataFrame
+if not df_filtrado.empty:
+    st.subheader("Predicción Consolidada para los Filtros Seleccionados")
     
     # Convertir el GTIN a string para evitar formato numérico con comas
-    forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype(str)
+    df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
     
     # Formatear columnas de predicciones para mostrar dos decimales
     columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
     for columna in columnas_prediccion:
-        forecast_consolidado[columna] = forecast_consolidado[columna].map("{:.2f}".format)
+        df_filtrado[columna] = df_filtrado[columna].map("{:.2f}".format)
     
     # Mostrar el DataFrame con formato mejorado
-    st.dataframe(forecast_consolidado[columnas_para_mostrar], use_container_width=True)
+    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 else:
-    st.write("No se encontraron predicciones consolidadas.")
-
-# Filtro 1: Selección de productos
-st.subheader("Filtrar por Producto")
-productos_seleccionados = st.multiselect(
-    "Escribe el nombre de un producto, selecciona uno o varios productos de la lista.",
-    options=forecast_consolidado['Producto'].unique()
-)
-
-# Filtro 2: Selección de categorías
-st.subheader("Filtrar por Categoría")
-categorias_seleccionadas = st.multiselect(
-    "Selecciona una o varias categorías de la lista.",
-    options=forecast_consolidado['Categoría'].unique()
-)
-
+    st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
+    
 # Final Parte 3
 
 # Inicio Parte 4
