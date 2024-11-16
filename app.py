@@ -223,80 +223,100 @@ if not df_filtrado.empty:
 else:
     st.write("Por favor, selecciona un producto o categoría para visualizar las predicciones.")
 
-# -- Plot 2: Análisis de Liquidación
+# --- Plot 2: Análisis de Liquidación ---
 
-# Enriquecer el DataFrame con datos adicionales
-df_adicional = df[['GTIN', 'Costo Unitario', 'Piezas']].copy()
+# Enriquecer forecast_df con datos adicionales del archivo original
+df_adicional = df[['GTIN', 'Piezas', 'Costo Unitario', 'Fecha']].copy()
 
-# Calcular el promedio mensual de ventas por GTIN
-df_adicional['Promedio Mensual'] = df_adicional.groupby('GTIN')['Piezas'].transform('mean')
+# Calcular el Total de Piezas Vendidas por GTIN
+df_adicional['Total Piezas Vendidas'] = df_adicional.groupby('GTIN')['Piezas'].transform('sum')
 
-# Seleccionar las columnas necesarias y eliminar duplicados
-df_adicional = df_adicional[['GTIN', 'Promedio Mensual', 'Costo Unitario']].drop_duplicates()
+# Calcular el número de meses únicos por GTIN
+df_adicional['Meses Únicos'] = df_adicional.groupby('GTIN')['Fecha'].transform(lambda x: x.dt.to_period('M').nunique())
 
-# Asegurar que GTIN en ambos DataFrames sea del mismo tipo
-df_filtrado['GTIN'] = df_filtrado['GTIN'].astype('int64')
+# Calcular el Promedio Mensual de Ventas
+df_adicional['Promedio Mensual'] = df_adicional['Total Piezas Vendidas'] / df_adicional['Meses Únicos']
+
+# Seleccionar columnas necesarias y eliminar duplicados
+df_adicional = df_adicional[['GTIN', 'Promedio Mensual', 'Costo Unitario', 'Total Piezas Vendidas']].drop_duplicates()
+
+# Asegurar que GTIN sea del mismo tipo en ambos DataFrames
+forecast_df['GTIN'] = forecast_df['GTIN'].astype('int64')
 df_adicional['GTIN'] = df_adicional['GTIN'].astype('int64')
 
-# Merge con el DataFrame Filtrado
-df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
+# Merge con forecast_df para enriquecer los datos
+forecast_df = forecast_df.merge(df_adicional, on='GTIN', how='left')
 
 # Calcular el Precio de Remate
-df_filtrado['Precio de Remate'] = df_filtrado['Costo Unitario'] * 1.2
+forecast_df['Precio de Remate'] = forecast_df['Costo Unitario'] * 1.2
 
-# Calcular el Total de Predicciones
-df_filtrado['Total Predicciones'] = df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1)
+# Calcular Total Predicciones
+forecast_df['Total Predicciones'] = forecast_df[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1)
 
-# Calcular el exceso de stock según la regla
-df_filtrado['Exceso de Stock'] = df_filtrado['Stock'] > (df_filtrado['Total Predicciones'] * 1.6)
+# Calcular Exceso de Stock
+forecast_df['Exceso de Stock'] = forecast_df['Stock'] > (forecast_df['Total Predicciones'] * 1.6)
 
-# Verificar que existen filas con exceso de stock
-productos_a_rematar = df_filtrado[df_filtrado['Exceso de Stock']]
+# Filtrar productos con exceso de stock
+productos_a_rematar = forecast_df[forecast_df['Exceso de Stock']]
 
-# Validar si hay productos a rematar
+# Validar si hay productos con exceso de stock
 if not productos_a_rematar.empty:
-    # Validar que las columnas necesarias están presentes
-    st.write("Verificando datos antes de graficar...")
-    st.write(productos_a_rematar[['Producto', 'Total Predicciones', 'Stock']].head())  # Mostrar estructura
+    # Crear el gráfico de barras
+    fig = go.Figure()
 
-    # Gráfico de Total Predicciones vs. Stock
-    if 'Producto' in productos_a_rematar.columns and 'Total Predicciones' in productos_a_rematar.columns and 'Stock' in productos_a_rematar.columns:
-        fig = px.bar(
-            productos_a_rematar,
-            x='Producto',
-            y=['Total Predicciones', 'Stock'],
-            title="Análisis de Liquidación: Productos con Exceso de Stock",
-            labels={'value': 'Unidades', 'variable': 'Concepto'},
-            barmode='group',
-            text_auto=True,  # Mostrar los valores encima de las barras
-            color_discrete_map={
-                'Total Predicciones': 'blue',
-                'Stock': 'green'
-            }
-        )
-        fig.update_layout(
-            xaxis_title="Productos",
-            yaxis_title="Unidades",
-            legend_title="Concepto",
-            height=500,  # Ajustar la altura para mejorar la visualización
-            margin=dict(t=50, b=50),
-            font=dict(size=12)  # Tamaño de fuente consistente
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.error("Faltan columnas necesarias en el DataFrame para graficar.")
+    # Barra de Stock Disponible
+    fig.add_trace(go.Bar(
+        x=productos_a_rematar['Producto'],
+        y=productos_a_rematar['Stock'],
+        text=productos_a_rematar['Stock'].astype(int).map(str),
+        textposition='inside',
+        name="Stock Disponible",
+        marker_color='green'
+    ))
 
-    # Tabla Complementaria
+    # Barra de Predicciones Totales
+    fig.add_trace(go.Bar(
+        x=productos_a_rematar['Producto'],
+        y=productos_a_rematar['Total Predicciones'],
+        text=productos_a_rematar['Total Predicciones'].map("{:.2f}".format),
+        textposition='inside',
+        name="Total Predicciones",
+        marker_color='blue'
+    ))
+
+    # Configurar el diseño del gráfico
+    fig.update_layout(
+        title="Análisis de Liquidación: Productos con Exceso de Stock",
+        xaxis_title="Productos",
+        yaxis_title="Unidades",
+        barmode='group',  # Barras agrupadas
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.3,
+            xanchor="center",
+            x=0.5
+        ),
+        height=400,
+        margin=dict(t=50, b=50)
+    )
+
+    # Mostrar el gráfico
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Mostrar tabla complementaria
     st.subheader("Detalles de Productos a Rematar")
-    columnas_tabla = ['GTIN', 'Producto', 'Stock', 'Promedio Mensual', 'Costo Unitario', 'Precio de Remate']
+    columnas_tabla = ['GTIN', 'Producto', 'Stock', 'Total Predicciones', 'Promedio Mensual', 'Costo Unitario', 'Precio de Remate']
     st.dataframe(productos_a_rematar[columnas_tabla].style.format({
         'Costo Unitario': '${:.2f}',
         'Precio de Remate': '${:.2f}',
         'Promedio Mensual': '{:.2f}',
+        'Total Predicciones': '{:.2f}',
         'Stock': '{:.0f}'
     }), use_container_width=True)
 else:
     st.write("No se encontraron productos con exceso de stock para liquidar.")
+
 
 
 # Final Parte 4
