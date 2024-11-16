@@ -63,43 +63,33 @@ forecast_df = forecast_df.merge(info_producto, on='GTIN', how='left')
 
 #######
 
-# Validar que las columnas necesarias existen en forecast_df
-columnas_requeridas = ['GTIN', 'Campus', 'Fecha', 'Predicción de Unidades']
-for col in columnas_requeridas:
-    if col not in forecast_df.columns:
-        print(f"Columnas disponibles: {forecast_df.columns}")
-        raise ValueError(f"La columna {col} no existe en forecast_df. Revisa los nombres de las columnas.")
+# Consolidar las predicciones en columnas por fecha
+forecast_consolidado = forecast_df.pivot_table(
+    index=['GTIN', 'Campus'],  # Agrupar por GTIN y Campus
+    columns='Fecha',           # Las fechas se convierten en columnas
+    values='Predicción de Unidades',  # Usar las predicciones como valores
+    aggfunc='sum'              # Sumar valores si hay duplicados (precaución)
+).reset_index()
 
-# Consolidar datos para evitar duplicados
-forecast_consolidado = forecast_df.groupby(['GTIN', 'Campus'], as_index=False).agg(
-    Producto=('GTIN', 'first'),
-    Categoria=('Campus', 'first'),
-    Septiembre_2024=('Prediccion de Unidades', lambda x: x.loc[forecast_df['Fecha'] == '2024-09-30'].sum()),
-    Octubre_2024=('Prediccion de Unidades', lambda x: x.loc[forecast_df['Fecha'] == '2024-10-31'].sum()),
-    Noviembre_2024=('Prediccion de Unidades', lambda x: x.loc[forecast_df['Fecha'] == '2024-11-30'].sum())
-)
+# Renombrar columnas según las fechas mapeadas
+fechas_mapeo = {
+    pd.Timestamp('2024-09-30'): 'Septiembre 2024',
+    pd.Timestamp('2024-10-31'): 'Octubre 2024',
+    pd.Timestamp('2024-11-30'): 'Noviembre 2024'
+}
+forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
 
-# Convertir GTIN al mismo tipo en ambos DataFrames
-forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
+# Validar que las columnas de predicción existan
+for columna in ['Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']:
+    if columna not in forecast_consolidado.columns:
+        forecast_consolidado[columna] = 0
+
+# --- Cargar el archivo de stock y realizar el join ---
+forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')  # Asegurar que GTIN sea int
 stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 
-# Agregar columna de Stock
+# Realizar el join para agregar el stock
 forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
-
-# --- INICIO de Streamlit ---
-st.title("Predicción de Ventas - Campus MTY")
-
-# Filtro de productos
-productos_seleccionados = st.multiselect(
-    "Escribe el nombre de un producto, selecciona uno o varios productos de la lista.",
-    options=forecast_consolidado['Producto'].unique()
-)
-
-# Aplicar filtro
-if productos_seleccionados:
-    prediccion_filtrada = forecast_consolidado[forecast_consolidado['Producto'].isin(productos_seleccionados)]
-else:
-    prediccion_filtrada = forecast_consolidado
 
 # Mostrar resultados
 if not prediccion_filtrada.empty:
