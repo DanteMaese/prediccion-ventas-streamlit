@@ -134,14 +134,14 @@ else:
 # Filtro 1: Selección de productos
 st.subheader("Filtrar por Producto")
 productos_seleccionados = st.multiselect(
-    "Escribe el nombre de un producto, selecciona uno o varios productos de la lista.",
+    "Escribe el nombre de un producto, selecciona uno o varios productos de la lista.",)
     options=forecast_pivot['Producto'].unique()
 )
 
 # Filtro 2: Selección de categorías
 st.subheader("Filtrar por Categoría")
 categorias_seleccionadas = st.multiselect(
-    "Selecciona una o varias categorías de la lista.",
+    "Selecciona una o varias categorías de la lista.",)
     options=forecast_pivot['Categoría'].unique()
 
 # --- Gráfico 1: Comparación de Stock vs Predicciones por Categoría ---
