@@ -71,6 +71,24 @@ forecast_df = forecast_df.merge(info_producto, on='GTIN', how='left')
 
 # Inicio Parte 3
 
+# Filtro 1: Selección de productos
+st.subheader("Filtrar por Producto")
+productos_seleccionados = st.multiselect(
+    "Escribe el nombre de un producto, selecciona uno o varios productos de la lista.",
+    options=forecast_consolidado['Producto'].unique()
+)
+
+# Filtro 2: Selección de categorías
+st.subheader("Filtrar por Categoría")
+categorias_seleccionadas = st.multiselect(
+    "Selecciona una o varias categorías de la lista.",
+    options=forecast_consolidado['Categoría'].unique()
+)
+
+# Final Part 3
+
+# Inicio Parte 4
+
 # Definir la ruta del archivo BD Stock
 RUTA_STOCK = "BD Stock.xlsx"
 
@@ -139,21 +157,4 @@ if not forecast_consolidado.empty:
 else:
     st.write("No se encontraron predicciones consolidadas.")
 
-# Final Parte 3
-
-# Inicio Parte 4
-
-# Filtro 1: Selección de productos
-st.subheader("Filtrar por Producto")
-productos_seleccionados = st.multiselect(
-    "Escribe el nombre de un producto, selecciona uno o varios productos de la lista.",
-    options=forecast_consolidado['Producto'].unique()
-)
-
-# Filtro 2: Selección de categorías
-st.subheader("Filtrar por Categoría")
-categorias_seleccionadas = st.multiselect(
-    "Selecciona una o varias categorías de la lista.",
-    options=forecast_consolidado['Categoría'].unique()
-)
-
+# Final Parte 4
