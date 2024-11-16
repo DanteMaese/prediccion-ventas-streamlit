@@ -161,3 +161,49 @@ else:
 # Final Parte 3
 
 # Inicio Parte 4
+
+# Inicio Parte 4 - Visualización
+
+import plotly.graph_objects as go
+
+# Cálculo de KPIs
+if not df_filtrado.empty:
+    total_predicciones = df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum().sum()
+    total_stock = df_filtrado['Stock'].astype(float).sum()
+
+    # Crear un gráfico de barras horizontales para comparar Predicción vs. Stock
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=[total_predicciones],
+        y=["Unidades Predichas"],
+        name="Unidades Predichas",
+        orientation='h',
+        marker=dict(color='blue')
+    ))
+
+    fig.add_trace(go.Bar(
+        x=[total_stock],
+        y=["Unidades Predichas"],
+        name="Stock Disponible",
+        orientation='h',
+        marker=dict(color='green')
+    ))
+
+    # Personalizar el diseño del gráfico
+    fig.update_layout(
+        title="Comparación: Total Predicciones vs. Stock Disponible",
+        xaxis=dict(title="Unidades"),
+        yaxis=dict(title=""),
+        barmode='group',
+        height=300,
+        margin=dict(l=40, r=40, t=50, b=30),
+        showlegend=True
+    )
+
+    # Mostrar gráfico en Streamlit
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.write("Por favor, selecciona un producto o categoría para visualizar las predicciones.")
+
+# Final Parte 4
