@@ -74,7 +74,7 @@ import pandas as pd
 @st.cache_data
 def cargar_stock():
     """Carga los datos de stock desde el archivo BD stock.xlsx."""
-    stock_df = pd.read_excel("BD stock.xlsx")  # Asegúrate de que este archivo esté en tu repositorio
+    stock_df = pd.read_excel("BD Stock.xlsx")  # Asegúrate de que este archivo esté en tu repositorio
     return stock_df
 
 # Cargar los datos de stock
