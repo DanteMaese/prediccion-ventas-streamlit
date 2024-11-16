@@ -223,11 +223,15 @@ if not df_filtrado.empty:
 else:
     st.write("Por favor, selecciona un producto o categoría para visualizar las predicciones.")
 
-# -- Plot 2
+# -- Plot 2: Análisis de Liquidación
 
 # Enriquecer el DataFrame con datos adicionales
 df_adicional = df[['GTIN', 'Costo Unitario', 'Piezas']].copy()
+
+# Calcular el promedio mensual de ventas por GTIN
 df_adicional['Promedio Mensual'] = df_adicional.groupby('GTIN')['Piezas'].transform('mean')
+
+# Seleccionar las columnas necesarias y eliminar duplicados
 df_adicional = df_adicional[['GTIN', 'Promedio Mensual', 'Costo Unitario']].drop_duplicates()
 
 # Asegurar que GTIN en ambos DataFrames sea del mismo tipo
@@ -237,8 +241,14 @@ df_adicional['GTIN'] = df_adicional['GTIN'].astype('int64')
 # Merge con el DataFrame Filtrado
 df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 
-# Calcular el Precio de Remate
+# Calcular el Precio de Remate (20% arriba del costo unitario)
 df_filtrado['Precio de Remate'] = df_filtrado['Costo Unitario'] * 1.2
+
+# Calcular el Total de Predicciones
+df_filtrado['Total Predicciones'] = df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1)
+
+# Calcular el exceso de stock según la regla
+df_filtrado['Exceso de Stock'] = df_filtrado['Stock'] > (df_filtrado['Total Predicciones'] * 1.6)
 
 # Filtrar productos con exceso de stock
 productos_a_rematar = df_filtrado[df_filtrado['Exceso de Stock']]
@@ -252,23 +262,30 @@ if not productos_a_rematar.empty:
         title="Análisis de Liquidación: Productos con Exceso de Stock",
         labels={'value': 'Unidades', 'variable': 'Concepto'},
         barmode='group',
-        text_auto=True
+        text_auto=True,  # Mostrar los valores encima de las barras
+        color_discrete_map={
+            'Total Predicciones': 'blue',
+            'Stock': 'green'
+        }
     )
     fig.update_layout(
         xaxis_title="Productos",
         yaxis_title="Unidades",
         legend_title="Concepto",
-        height=400,
-        margin=dict(t=50, b=50)
+        height=500,  # Ajustar la altura para mejorar la visualización
+        margin=dict(t=50, b=50),
+        font=dict(size=12)  # Tamaño de fuente consistente
     )
     st.plotly_chart(fig, use_container_width=True)
 
     # Tabla Complementaria
     st.subheader("Detalles de Productos a Rematar")
-    columnas_tabla = ['GTIN', 'Producto', 'Stock', 'Costo Unitario', 'Precio de Remate']
+    columnas_tabla = ['GTIN', 'Producto', 'Stock', 'Promedio Mensual', 'Costo Unitario', 'Precio de Remate']
     st.dataframe(productos_a_rematar[columnas_tabla].style.format({
         'Costo Unitario': '${:.2f}',
-        'Precio de Remate': '${:.2f}'
+        'Precio de Remate': '${:.2f}',
+        'Promedio Mensual': '{:.2f}',
+        'Stock': '{:.0f}'
     }), use_container_width=True)
 else:
     st.write("No se encontraron productos con exceso de stock para liquidar.")
