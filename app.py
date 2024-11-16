@@ -141,7 +141,7 @@ else:
 
 # Final Parte 3
 
-# Inicio Part 4
+# Inicio Parte 4
 
 # Filtro 1: Selección de productos
 st.subheader("Filtrar por Producto")
@@ -155,4 +155,5 @@ st.subheader("Filtrar por Categoría")
 categorias_seleccionadas = st.multiselect(
     "Selecciona una o varias categorías de la lista.",
     options=forecast_consolidado['Categoría'].unique()
+)
 
