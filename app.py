@@ -62,27 +62,29 @@ info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
 forecast_df = forecast_df.merge(info_producto, on='GTIN', how='left')
 
 # --- Reestructuración de forecast_df ---
-# Pivotar para que las fechas se conviertan en columnas
-forecast_pivot = forecast_df.pivot_table(
-    index=['GTIN', 'Producto', 'Categoría', 'Campus'],
-    columns='Fecha',
-    values='Predicción de Unidades',
-    aggfunc='sum'
-).reset_index()
-
-# Renombrar columnas si las fechas existen
+# Crear columnas para cada mes de predicción
 fechas_mapeo = {
-    '2024-09-30': 'Septiembre 2024',
-    '2024-10-31': 'Octubre 2024',
-    '2024-11-30': 'Noviembre 2024'
+    '2024-09-30': 'Pred. Sep 2024',
+    '2024-10-31': 'Pred. Oct 2024',
+    '2024-11-30': 'Pred. Nov 2024'
 }
 
-forecast_pivot.rename(columns={col: fechas_mapeo[col] for col in fechas_mapeo if col in forecast_pivot.columns}, inplace=True)
+# Inicializar las columnas de predicción en el DataFrame
+for col in fechas_mapeo.values():
+    forecast_df[col] = 0
 
-# Validar que las columnas de predicción existan
-for columna in ['Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']:
-    if columna not in forecast_pivot.columns:
-        forecast_pivot[columna] = 0
+# Llenar las columnas de predicción con los valores correspondientes
+for fecha, col_name in fechas_mapeo.items():
+    forecast_df.loc[forecast_df['Fecha'] == fecha, col_name] = forecast_df['Predicción de Unidades']
+
+# Consolidar las filas para agrupar por producto, campus y categoría
+forecast_consolidado = forecast_df.groupby(['GTIN', 'Producto', 'Categoría', 'Campus'], as_index=False).agg(
+    {
+        'Septiembre 2024': 'sum',
+        'Octubre 2024': 'sum',
+        'Noviembre 2024': 'sum'
+    }
+)
 
 # --- Cargar el archivo de stock y realizar el join ---
 @st.cache_data
@@ -95,11 +97,11 @@ def cargar_stock():
 # Cargar los datos de stock
 stock_df = cargar_stock()
 
-# Asegurarse de que GTIN en forecast_pivot sea del mismo tipo
-forecast_pivot['GTIN'] = forecast_pivot['GTIN'].astype('int64')
+# Asegurarse de que GTIN en forecast_consolidado sea del mismo tipo
+forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
 
 # Realizar el join para agregar la columna de stock
-forecast_pivot = forecast_pivot.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
+forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
 
 # --- INICIO de Streamlit ---
 st.title("Predicción de Ventas - Campus MTY")
@@ -107,11 +109,11 @@ st.title("Predicción de Ventas - Campus MTY")
 # Campo de selección múltiple con instrucciones
 productos_seleccionados = st.multiselect(
     "Escribe el nombre de un producto, selecciona uno o varios productos de la lista.",
-    options=forecast_pivot['Producto'].unique()
+    options=forecast_consolidado['Producto'].unique()
 )
 
 # Filtrar el DataFrame para los productos seleccionados
-prediccion_productos = forecast_pivot[forecast_pivot['Producto'].isin(productos_seleccionados)]
+prediccion_productos = forecast_consolidado[forecast_consolidado['Producto'].isin(productos_seleccionados)]
 
 # Mostrar la predicción para los productos seleccionados con formato mejorado
 if not prediccion_productos.empty:
@@ -119,13 +121,12 @@ if not prediccion_productos.empty:
     
     # Seleccionar columnas relevantes
     columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Septiembre 2024', 'Octubre 2024', 'Noviembre 2024', 'Stock']
-    columnas_existentes = [col for col in columnas_para_mostrar if col in prediccion_productos.columns]
     
-    styled_df = prediccion_productos[columnas_existentes].style.format(
+    styled_df = prediccion_productos[columnas_para_mostrar].style.format(
         {
-            'Septiembre 2024': '{:.0f}',
-            'Octubre 2024': '{:.0f}',
-            'Noviembre 2024': '{:.0f}',
+            'Pred. Sep 2024': '{:.0f}',
+            'Pred. Oct 2024': '{:.0f}',
+            'Pred. Nov 2024': '{:.0f}',
             'Stock': '{:.0f}'
         }
     ).hide(axis="index")  # Ocultar el índice
@@ -138,13 +139,3 @@ else:
 st.subheader("Comparación de Stock vs Predicciones por Categoría")
 comparacion_categoria = forecast_pivot.groupby('Categoría')[['Stock', 'Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']].sum().reset_index()
 st.bar_chart(data=comparacion_categoria.set_index('Categoría'))
-
-# --- Gráfico 2: Categorías con Riesgo de Quedarse Sin Stock ---
-st.subheader("Categorías con Riesgo de Quedarse Sin Stock")
-comparacion_categoria['Predicción Total'] = comparacion_categoria[['Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']].sum(axis=1)
-categorias_riesgo = comparacion_categoria[comparacion_categoria['Predicción Total'] > comparacion_categoria['Stock']]
-
-if not categorias_riesgo.empty:
-    st.bar_chart(data=categorias_riesgo.set_index('Categoría')[['Predicción Total']])
-else:
-    st.write("No hay categorías con riesgo de quedarse sin stock.")
