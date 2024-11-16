@@ -328,13 +328,20 @@ if not productos_a_rematar.empty:
     # Mostrar el gráfico en Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
-    # Mostrar detalles adicionales
-    st.subheader("Detalles de Productos a Rematar")
+    # Verificar y corregir tipos en columnas de la tabla
     columnas_tabla = ['GTIN', 'Producto', 'Stock', 'Piezas_Vendidas', 'Precio de Remate']
+    for columna in ['Stock', 'Piezas_Vendidas', 'Precio de Remate']:
+        productos_a_rematar[columna] = pd.to_numeric(productos_a_rematar[columna], errors='coerce').fillna(0)
+    
+    # Mostrar detalles adicionales en una tabla
+    st.subheader("Detalles de Productos a Rematar")
     st.dataframe(productos_a_rematar[columnas_tabla].style.format({
+        'Stock': '{:.2f}',
+        'Piezas_Vendidas': '{:.2f}',
         'Precio de Remate': '${:.2f}'
     }), use_container_width=True)
 else:
     st.write("No se encontraron productos con exceso de stock para liquidar.")
+
 
 # Final Parte 4
