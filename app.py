@@ -104,14 +104,28 @@ forecast_pivot = forecast_pivot.merge(stock_df[['GTIN', 'Stock']], on='GTIN', ho
 # --- INICIO de Streamlit ---
 st.title("Predicción de Ventas - Campus MTY")
 
-# Campo de selección múltiple con instrucciones
+# Filtro 1: Selección de productos
+st.subheader("Filtrar por Producto")
 productos_seleccionados = st.multiselect(
     "Escribe el nombre de un producto, selecciona uno o varios productos de la lista.",
     options=forecast_pivot['Producto'].unique()
 )
 
-# Filtrar el DataFrame para los productos seleccionados
-prediccion_productos = forecast_pivot[forecast_pivot['Producto'].isin(productos_seleccionados)]
+# Filtro 2: Selección de categorías
+st.subheader("Filtrar por Categoría")
+categorias_seleccionadas = st.multiselect(
+    "Selecciona una o varias categorías de la lista.",
+    options=forecast_pivot['Categoría'].unique()
+)
+
+# Filtrar el DataFrame según los productos y las categorías seleccionadas
+prediccion_productos = forecast_pivot.copy()
+
+if productos_seleccionados:
+    prediccion_productos = prediccion_productos[prediccion_productos['Producto'].isin(productos_seleccionados)]
+
+if categorias_seleccionadas:
+    prediccion_productos = prediccion_productos[prediccion_productos['Categoría'].isin(categorias_seleccionadas)]
 
 # Mostrar la predicción para los productos seleccionados con formato mejorado
 if not prediccion_productos.empty:
@@ -132,15 +146,22 @@ if not prediccion_productos.empty:
 
     st.dataframe(styled_df, use_container_width=True)
 else:
-    st.write("No se encontraron predicciones para los productos seleccionados.")
+    st.write("No se encontraron predicciones para los filtros seleccionados.")
 
-# --- Gráfico 1: Comparación de Stock vs Predicciones por Categoría ---
-st.subheader("Comparación de Stock vs Predicciones por Categoría")
-comparacion_categoria = forecast_pivot.groupby('Categoría')[['Stock', 'Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']].sum().reset_index()
-st.bar_chart(data=comparacion_categoria.set_index('Categoría'))
+# --- Gráfico: Comparación de Stock vs Predicciones por Producto ---
+st.subheader("Comparación de Stock vs Predicciones por Producto")
+
+# Agrupar datos por Producto
+comparacion_producto = prediccion_productos.groupby('Producto')[['Stock', 'Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']].sum().reset_index()
+
+# Mostrar gráfico de barras agrupadas
+st.bar_chart(data=comparacion_producto.set_index('Producto'))
 
 # --- Gráfico 2: Categorías con Riesgo de Quedarse Sin Stock ---
 st.subheader("Categorías con Riesgo de Quedarse Sin Stock")
+
+# Identificar categorías en riesgo
+comparacion_categoria = prediccion_productos.groupby('Categoría')[['Stock', 'Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']].sum().reset_index()
 comparacion_categoria['Predicción Total'] = comparacion_categoria[['Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']].sum(axis=1)
 categorias_riesgo = comparacion_categoria[comparacion_categoria['Predicción Total'] > comparacion_categoria['Stock']]
 
