@@ -291,26 +291,25 @@ if not df_filtrado.empty:
 else:
     st.write("No se encontraron datos para los filtros seleccionados.")
 
+------
+
 import plotly.express as px
 
 # Crear un DataFrame con solo los productos marcados para remate
 productos_a_rematar = df_filtrado[df_filtrado['Rematar']]
 
 if not productos_a_rematar.empty:
-    # Crear un DataFrame para el gráfico
-    df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock', 'Precio de Remate']].copy()
-    
-    # Convertir Precio de Remate a float para graficar
-    df_plot['Precio de Remate'] = df_plot['Precio de Remate'].astype(float)
+    # Crear un DataFrame para el gráfico (solo piezas vendidas y stock)
+    df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock']].copy()
 
     # Crear el gráfico de barras agrupadas
     fig = px.bar(
-        df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock', 'Precio de Remate']),
+        df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock']),
         x='Producto',
         y='value',
         color='variable',
-        title="Análisis de Liquidación: Precio de Remate vs. Inventario y Predicciones",
-        labels={'value': 'Valores', 'variable': 'Métricas'},
+        title="Análisis de Liquidación: Inventario y Predicciones",
+        labels={'value': 'Unidades', 'variable': 'Métricas'},
         barmode='group',
         text_auto=True
     )
@@ -318,7 +317,7 @@ if not productos_a_rematar.empty:
     # Ajustar el diseño del gráfico
     fig.update_layout(
         xaxis_title="Productos",
-        yaxis_title="Valores",
+        yaxis_title="Unidades",
         legend_title="Métricas",
         height=400,
         margin=dict(t=50, b=50),
@@ -328,20 +327,18 @@ if not productos_a_rematar.empty:
     # Mostrar el gráfico en Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
-    # Verificar y corregir tipos en columnas de la tabla
-    columnas_tabla = ['GTIN', 'Producto', 'Stock', 'Piezas_Vendidas', 'Precio de Remate']
-    for columna in ['Stock', 'Piezas_Vendidas', 'Precio de Remate']:
-        productos_a_rematar[columna] = pd.to_numeric(productos_a_rematar[columna], errors='coerce').fillna(0)
-    
-    # Mostrar detalles adicionales en una tabla
-    st.subheader("Detalles de Productos a Rematar")
-    st.dataframe(productos_a_rematar[columnas_tabla].style.format({
-        'Stock': '{:.2f}',
-        'Piezas_Vendidas': '{:.2f}',
-        'Precio de Remate': '${:.2f}'
-    }), use_container_width=True)
+    # Mostrar KPI para el precio de remate
+    st.subheader("Precio de Remate")
+    for index, row in productos_a_rematar.iterrows():
+        st.metric(
+            label=f"Producto: {row['Producto']}",
+            value=f"${float(row['Precio de Remate']):.2f}",
+            delta=None,
+            delta_color="normal"
+        )
 else:
     st.write("No se encontraron productos con exceso de stock para liquidar.")
+
 
 
 # Final Parte 4
