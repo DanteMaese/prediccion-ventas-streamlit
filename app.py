@@ -73,15 +73,27 @@ import pandas as pd
 # --- Cargar el archivo de stock y realizar el join ---
 @st.cache_data
 def cargar_stock():
-    """Carga los datos de stock desde el archivo BD stock.xlsx."""
-    stock_df = pd.read_excel("BD Stock.xlsx")  # Asegúrate de que este archivo esté en tu repositorio
+    """Carga los datos de stock desde el archivo BD Stock.xlsx y ajusta el formato de GTIN."""
+    stock_df = pd.read_excel("BD Stock.xlsx")
+    stock_df['GTIN'] = stock_df['GTIN'].astype('int64')  # Convertir GTIN a int
     return stock_df
 
 # Cargar los datos de stock
 stock_df = cargar_stock()
 
+# Asegurarse de que GTIN en forecast_df sea del mismo tipo
+forecast_df['GTIN'] = forecast_df['GTIN'].astype('int64')  # Convertir GTIN a int
+
+# Debugging para verificar las claves
+print("Valores únicos en stock_df['GTIN']:", stock_df['GTIN'].unique())
+print("Valores únicos en forecast_df['GTIN']:", forecast_df['GTIN'].unique())
+
 # Realizar el join para agregar la columna de stock a forecast_df
 forecast_df = forecast_df.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
+
+# Verificar el resultado del join
+print("Preview de forecast_df después del join:")
+print(forecast_df[['GTIN', 'Stock']].head())
 
 # --- INICIO de Streamlit ---
 st.title("Predicción de Ventas - Campus MTY")
