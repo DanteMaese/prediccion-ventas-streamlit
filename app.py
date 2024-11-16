@@ -242,27 +242,8 @@ df_adicional['GTIN'] = df_adicional['GTIN'].astype('int64')
 # Merge para combinar la información adicional con df_filtrado
 df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 
-# Seleccionar columnas relevantes para visualización
-columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 
-                         'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 
-                         'Stock', 'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario']
-
-# Mostrar el DataFrame actualizado en Streamlit
-if not df_filtrado.empty:
-    st.subheader("Predicción Consolidada con Información Adicional")
-    
-    # Convertir GTIN a string para evitar formato numérico con comas
-    df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
-    
-    # Formatear columnas para visualización
-    columnas_formatear = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 
-                          'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario', 'Stock']
-    df_filtrado[columnas_formatear] = df_filtrado[columnas_formatear].applymap(lambda x: "{:.2f}".format(x) if isinstance(x, (int, float)) else x)
-    
-    # Mostrar DataFrame con formato mejorado
-    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
-else:
-    st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
+# Reemplazar valores NaN en columnas relevantes
+df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0.00)
 
 # Calcular el promedio mensual basado en predicciones y piezas vendidas
 df_filtrado['Promedio Mensual'] = (
@@ -283,11 +264,26 @@ df_filtrado['Precio de Remate'] = (
     df_filtrado['Promedio Mensual'] * df_filtrado['Costo_Unitario'].astype(float)
 )
 
-# Asegurarse de que las columnas estén formateadas correctamente
-df_filtrado['Precio de Remate'] = df_filtrado['Precio de Remate'].apply(lambda x: max(x, 0)).map("{:.2f}".format)
+# Formatear columnas para visualización
+columnas_formatear = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
+                      'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
+                      'Stock', 'Promedio Mensual', 'Anios de Inventario', 'Precio de Remate']
 
+# Aplicar formato a las columnas numéricas
+df_filtrado[columnas_formatear] = df_filtrado[columnas_formatear].applymap(
+    lambda x: "{:.2f}".format(x) if isinstance(x, (int, float)) else x
+)
 
+# Mostrar el DataFrame actualizado en Streamlit
+columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
+                         'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
+                         'Stock', 'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
+                         'Promedio Mensual', 'Anios de Inventario', 'Precio de Remate']
 
-
+if not df_filtrado.empty:
+    st.subheader("Análisis de Liquidación con Métricas Adicionales")
+    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+else:
+    st.write("No se encontraron datos para los filtros seleccionados.")
 
 # Final Parte 4
