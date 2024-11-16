@@ -104,20 +104,18 @@ prediccion_productos = forecast_df[forecast_df['GTIN'].isin(gtins_seleccionados)
 if not prediccion_productos.empty:
     st.subheader("Predicción para los Productos Seleccionados")
     
-    # Aplicar estilos a la tabla
-    styled_df = prediccion_productos[['GTIN', 'Producto', 'Categoría', 'Campus', 'Fecha', 'Predicción de Unidades', 'Stock']].style.format(
-        {
-            'Predicción de Unidades': '{:.0f}',  # Sin decimales
-            'Stock': '{:.0f}',  # Sin decimales
-        }
-    ).set_properties(
-        **{
-            'text-align': 'center',  # Centrar el texto
-            'width': '100px'  # Ajustar el ancho de las columnas
-        }
-    ).hide(axis="index")  # Ocultar el índice de pandas
+    # Seleccionar columnas relevantes
+    columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Fecha', 'Predicción de Unidades', 'Stock']
     
-    # Mostrar la tabla con `st.dataframe` para hacerla interactiva
-    st.dataframe(styled_df, use_container_width=True)  # Usar el ancho total del contenedor
+    # Crear un DataFrame estilizado para eliminar el índice y ajustar el formato
+    styled_df = prediccion_productos[columnas_para_mostrar].style.format(
+        {
+            'Predicción de Unidades': '{:.0f}',  # Formatear sin decimales
+            'Stock': '{:.0f}'  # Formatear sin decimales
+        }
+    ).hide(axis="index")  # Ocultar el índice
+
+    # Mostrar la tabla en Streamlit usando todo el ancho del contenedor
+    st.dataframe(styled_df, use_container_width=True)
 else:
     st.write("No se encontraron predicciones para los productos seleccionados.")
