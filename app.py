@@ -79,6 +79,11 @@ fechas_mapeo = {
 
 forecast_pivot.rename(columns={col: fechas_mapeo[col] for col in fechas_mapeo if col in forecast_pivot.columns}, inplace=True)
 
+# Validar que las columnas de predicción existan
+for columna in ['Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']:
+    if columna not in forecast_pivot.columns:
+        forecast_pivot[columna] = 0
+
 # --- Cargar el archivo de stock y realizar el join ---
 @st.cache_data
 def cargar_stock():
@@ -114,9 +119,9 @@ if not prediccion_productos.empty:
     
     # Seleccionar columnas relevantes
     columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Septiembre 2024', 'Octubre 2024', 'Noviembre 2024', 'Stock']
+    columnas_existentes = [col for col in columnas_para_mostrar if col in prediccion_productos.columns]
     
-    # Crear un DataFrame estilizado para eliminar el índice y ajustar el formato
-    styled_df = prediccion_productos[columnas_para_mostrar].style.format(
+    styled_df = prediccion_productos[columnas_existentes].style.format(
         {
             'Septiembre 2024': '{:.0f}',
             'Octubre 2024': '{:.0f}',
@@ -125,24 +130,17 @@ if not prediccion_productos.empty:
         }
     ).hide(axis="index")  # Ocultar el índice
 
-    # Mostrar la tabla en Streamlit usando todo el ancho del contenedor
     st.dataframe(styled_df, use_container_width=True)
 else:
     st.write("No se encontraron predicciones para los productos seleccionados.")
 
 # --- Gráfico 1: Comparación de Stock vs Predicciones por Categoría ---
 st.subheader("Comparación de Stock vs Predicciones por Categoría")
-
-# Agrupar datos por Categoría
 comparacion_categoria = forecast_pivot.groupby('Categoría')[['Stock', 'Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']].sum().reset_index()
-
-# Mostrar gráfico de barras agrupadas
 st.bar_chart(data=comparacion_categoria.set_index('Categoría'))
 
 # --- Gráfico 2: Categorías con Riesgo de Quedarse Sin Stock ---
 st.subheader("Categorías con Riesgo de Quedarse Sin Stock")
-
-# Identificar categorías en riesgo
 comparacion_categoria['Predicción Total'] = comparacion_categoria[['Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']].sum(axis=1)
 categorias_riesgo = comparacion_categoria[comparacion_categoria['Predicción Total'] > comparacion_categoria['Stock']]
 
