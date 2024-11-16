@@ -3,23 +3,20 @@ import pandas as pd
 import numpy as np
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
-# Definir la ruta del archivo como variable para facilidad de ajuste
-RUTA_ARCHIVO = "BD Ventas Tec Store - Campus MTY.xlsx"
-
 # --- Funciones de procesamiento con caché ---
 @st.cache_data
 def cargar_datos():
-    """Carga y limpia los datos de Excel, excluyendo registros de 'Tecmilenio'."""
-    df = pd.read_excel(RUTA_ARCHIVO)
+    # Cargar y limpiar los datos
+    df = pd.read_excel("C:\\Users\\dante\\Downloads\\BD Ventas Tec Store - Campus MTY.xlsx")
     df = df[df['Empresa'] != 'Tecmilenio']
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
     df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
     df_TS = df_TS.set_index('Fecha')
-    return df, df_TS
+    return df_TS
 
 @st.cache_data
 def procesar_datos(df_TS):
-    """Agrupa los datos por mes y crea un DataFrame con todas las combinaciones de fechas, productos y campus."""
+    # Crear el DataFrame mensual y realizar el preprocesamiento
     monthly_df = df_TS.groupby(['GTIN', 'Campus']).resample('M')['Piezas'].sum().reset_index()
     full_date_range = pd.date_range(start=monthly_df['Fecha'].min(), end='2024-08-31', freq='M')
     product_campus_combinations = pd.MultiIndex.from_product(
@@ -27,26 +24,27 @@ def procesar_datos(df_TS):
         names=['GTIN', 'Campus', 'Fecha']
     )
     monthly_df = monthly_df.set_index(['GTIN', 'Campus', 'Fecha']).reindex(product_campus_combinations, fill_value=0).reset_index()
+    monthly_df = monthly_df.set_index('Fecha')
     return monthly_df
 
 @st.cache_data
 def generar_predicciones(monthly_df):
-    """Aplica Exponential Smoothing para predecir las ventas de los próximos 3 meses por cada combinación de producto y campus."""
+    # Crear lista para almacenar predicciones y aplicar el modelo de predicción
     forecast_list = []
     for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus']):
-        group = group.set_index('Fecha')['Piezas']
+        group = group.resample('M').sum()['Piezas']
         model = ExponentialSmoothing(group, trend="add", seasonal="add", seasonal_periods=12)
         fit_model = model.fit()
         forecast = fit_model.forecast(steps=3)
         forecast_df = pd.DataFrame({
-            'GTIN': product,
+            'Product': product,
             'Campus': campus,
-            'Septiembre 2024': [forecast[0]],
-            'Octubre 2024': [forecast[1]],
-            'Noviembre 2024': [forecast[2]],
+            'Date': forecast.index,
+            'Predicted Units Sold': forecast.values
         })
+        forecast_df['Predicted Units Sold'] = forecast_df['Predicted Units Sold'].clip(lower=0)
         forecast_list.append(forecast_df)
-    return pd.concat(forecast_list, ignore_index=True)
+    return pd.concat(forecast_list).reset_index(drop=True)
 
 # --- Cargar y procesar los datos usando las funciones cacheadas ---
 df, df_TS = cargar_datos()
