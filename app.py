@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
+# Inicio Parte 1
+
 # Definir la ruta del archivo como variable para facilidad de ajuste
 RUTA_ARCHIVO = "BD Ventas Tec Store - Campus MTY.xlsx"
 
@@ -50,6 +52,10 @@ def generar_predicciones(monthly_df):
         forecast_list.append(forecast_df)
     return pd.concat(forecast_list).reset_index(drop=True)
 
+# Final Parte 1
+
+# Inicio Parte 2
+
 # --- Cargar y procesar los datos usando las funciones cacheadas ---
 df, df_TS = cargar_datos()
 monthly_df = procesar_datos(df_TS)
@@ -61,14 +67,16 @@ info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
 # Realizar el join para agregar Producto y Categoría a forecast_df
 forecast_df = forecast_df.merge(info_producto, on='GTIN', how='left')
 
-#######
+# Final Parte 2
+
+# Inicio Parte 3
 
 # Consolidar las predicciones en columnas por fecha
 forecast_consolidado = forecast_df.pivot_table(
-    index=['GTIN', 'Campus'],  # Agrupar por GTIN y Campus
-    columns='Fecha',           # Las fechas se convierten en columnas
-    values='Predicción de Unidades',  # Usar las predicciones como valores
-    aggfunc='sum'              # Sumar valores si hay duplicados (precaución)
+    index=['GTIN', 'Producto', 'Categoría', 'Campus'],  # Incluir Producto y Categoría en el índice
+    columns='Fecha',                                    # Las fechas se convierten en columnas
+    values='Predicción de Unidades',                    # Usar las predicciones como valores
+    aggfunc='sum'                                       # Sumar valores si hay duplicados
 ).reset_index()
 
 # Renombrar columnas según las fechas mapeadas
@@ -85,19 +93,25 @@ for columna in ['Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']:
         forecast_consolidado[columna] = 0
 
 # --- Cargar el archivo de stock y realizar el join ---
-forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')  # Asegurar que GTIN sea int
+# Asegurarse de que GTIN en ambos DataFrames sea del mismo tipo
+forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
 stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 
 # Realizar el join para agregar el stock
 forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
 
-# Mostrar resultados
-if not prediccion_filtrada.empty:
-    st.dataframe(prediccion_filtrada)
-else:
-    st.write("No se encontraron predicciones para los filtros seleccionados.")
+# Mostrar resultados en Streamlit
+st.title("Predicción Consolidada de Ventas - Campus MTY")
 
-#######
+# Mostrar el DataFrame consolidado con formato mejorado
+columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Septiembre 2024', 'Octubre 2024', 'Noviembre 2024', 'Stock']
+if not forecast_consolidado.empty:
+    st.subheader("Predicción Consolidada para los Productos Seleccionados")
+    st.dataframe(forecast_consolidado[columnas_para_mostrar], use_container_width=True)
+else:
+    st.write("No se encontraron predicciones consolidadas."
+
+# Final Parte 3
 
 # --- Gráfico 1: Comparación de Stock vs Predicciones por Categoría ---
 st.subheader("Comparación de Stock vs Predicciones por Categoría")
