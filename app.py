@@ -112,8 +112,11 @@ stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 # Realizar el join para agregar el stock
 forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
 
+# Mostrar resultados en Streamlit
+st.title("Predicción Consolidada de Ventas - Campus MTY")
+
 # Filtros para Producto y Categoría
-st.subheader("Filtros para la Predicción de Ventas")
+# st.subheader("Filtros para la Predicción de Ventas")
 productos_seleccionados = st.multiselect(
     "Escribe o selecciona uno o varios productos:",
     options=forecast_consolidado['Producto'].unique()
@@ -132,9 +135,6 @@ if productos_seleccionados:
 
 if categorias_seleccionadas:
     df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(categorias_seleccionadas)]
-
-# Mostrar resultados en Streamlit
-st.title("Predicción Consolidada de Ventas - Campus MTY")
 
 # Seleccionar columnas relevantes
 columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
