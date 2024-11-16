@@ -230,7 +230,7 @@ df_adicional = df[['GTIN', 'Piezas', 'Precio Unitario', 'Costo Unitario']].copy(
 
 # Calcular el total de piezas por GTIN
 df_adicional = df_adicional.groupby('GTIN', as_index=False).agg(
-    Total_Piezas=('Piezas', 'sum'),
+    Piezas_Vendidas=('Piezas', 'sum'),
     Precio_Unitario=('Precio Unitario', 'first'),  # Asume que el precio unitario es constante para cada GTIN
     Costo_Unitario=('Costo Unitario', 'first')  # Asume que el costo unitario es constante para cada GTIN
 )
