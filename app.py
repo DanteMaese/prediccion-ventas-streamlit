@@ -68,6 +68,21 @@ forecast_df['GTIN'] = forecast_df['GTIN'].astype('int64')
 # Formatear 'Fecha' para mostrar solo 'YYYY-MM-DD'
 forecast_df['Fecha'] = forecast_df['Fecha'].dt.strftime('%Y-%m-%d')
 
+import pandas as pd
+
+# --- Cargar el archivo de stock y realizar el join ---
+@st.cache_data
+def cargar_stock():
+    """Carga los datos de stock desde el archivo BD stock.xlsx."""
+    stock_df = pd.read_excel("BD stock.xlsx")  # Asegúrate de que este archivo esté en tu repositorio
+    return stock_df
+
+# Cargar los datos de stock
+stock_df = cargar_stock()
+
+# Realizar el join para agregar la columna de stock a forecast_df
+forecast_df = forecast_df.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
+
 # --- INICIO de Streamlit ---
 st.title("Predicción de Ventas - Campus MTY")
 
@@ -88,7 +103,7 @@ prediccion_productos = forecast_df[forecast_df['GTIN'].isin(gtins_seleccionados)
 # Mostrar la predicción para los productos seleccionados
 if not prediccion_productos.empty:
     st.subheader("Predicción para los Productos Seleccionados")
-    st.write(prediccion_productos[['GTIN', 'Producto', 'Categoría', 'Campus', 'Fecha', 'Predicción de Unidades']])
+    st.write(prediccion_productos[['GTIN', 'Producto', 'Categoría', 'Campus', 'Fecha', 'Predicción de Unidades', 'Stock']])
 else:
     st.write("No se encontraron predicciones para los productos seleccionados.")
 
