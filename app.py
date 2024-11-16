@@ -264,6 +264,27 @@ if not df_filtrado.empty:
 else:
     st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
 
+# Calcular el promedio mensual basado en predicciones y piezas vendidas
+df_filtrado['Promedio Mensual'] = (
+    df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1) +
+    df_filtrado['Piezas_Vendidas'].astype(float)
+) / 12
+
+# Calcular los años de inventario
+df_filtrado['Anios de Inventario'] = df_filtrado['Stock'].astype(float) / df_filtrado['Promedio Mensual']
+
+# Aplicar la regla de rematar
+df_filtrado['Rematar'] = df_filtrado['Anios de Inventario'] > 10
+
+# Calcular el precio de remate
+df_filtrado['Precio de Remate'] = (
+    df_filtrado['Promedio Mensual'] * df_filtrado['Precio_Unitario'].astype(float)
+) - (
+    df_filtrado['Promedio Mensual'] * df_filtrado['Costo_Unitario'].astype(float)
+)
+
+# Asegurarse de que las columnas estén formateadas correctamente
+df_filtrado['Precio de Remate'] = df_filtrado['Precio de Remate'].apply(lambda x: max(x, 0)).map("{:.2f}".format)
 
 
 
