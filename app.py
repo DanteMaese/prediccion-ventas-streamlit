@@ -53,7 +53,7 @@ def generar_predicciones(monthly_df):
     return pd.concat(forecast_list).reset_index(drop=True)
 
 # Final Parte 1
-
+############################################################################################
 # Inicio Parte 2
 
 # --- Cargar y procesar los datos usando las funciones cacheadas ---
@@ -68,7 +68,7 @@ info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
 forecast_df = forecast_df.merge(info_producto, on='GTIN', how='left')
 
 # Final Parte 2
-
+############################################################################################
 # Inicio Parte 3
 
 # Definir la ruta del archivo BD Stock
@@ -159,7 +159,7 @@ else:
     st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
     
 # Final Parte 3
-
+############################################################################################
 # Inicio Parte 4
 
 # -- Plot 1
@@ -223,7 +223,7 @@ if not df_filtrado.empty:
 else:
     st.write("Por favor, selecciona un producto o categoría para visualizar las predicciones.")
 
-# --- Plot 2: Análisis de Liquidación ---
+# --- Plot 2
 
 # Extraer las columnas necesarias del archivo original
 df_adicional = df[['GTIN', 'Piezas', 'Precio Unitario', 'Costo Unitario']].copy()
@@ -292,7 +292,7 @@ else:
     st.write("No se encontraron datos para los filtros seleccionados.")
 
 
-###
+############################################################################################
 
 import plotly.express as px
 
@@ -339,7 +339,5 @@ if not productos_a_rematar.empty:
         )
 else:
     st.write("No se encontraron productos con exceso de stock para liquidar.")
-
-
 
 # Final Parte 4
