@@ -116,10 +116,10 @@ forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], o
 st.title("Predicción Consolidada de Ventas - Campus MTY")
 
 # Filtros para Producto y Categoría
-# st.subheader("Filtros para la Predicción de Ventas")
+# Ordenar productos alfabéticamente
 productos_seleccionados = st.multiselect(
     "Escribe o selecciona uno o varios productos:",
-    options=forecast_consolidado['Producto'].unique()
+    options=sorted(forecast_consolidado['Producto'].unique())  # Ordenar productos alfabéticamente
 )
 
 categorias_seleccionadas = st.multiselect(
