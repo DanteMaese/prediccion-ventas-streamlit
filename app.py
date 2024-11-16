@@ -7,12 +7,6 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 RUTA_ARCHIVO = "BD Ventas Tec Store - Campus MTY.xlsx"
 RUTA_STOCK = "BD Stock.xlsx"
 
-# Verificar existencia de archivos
-if not os.path.exists(RUTA_ARCHIVO):
-    st.error(f"Archivo no encontrado: {RUTA_ARCHIVO}")
-if not os.path.exists(RUTA_STOCK):
-    st.error(f"Archivo no encontrado: {RUTA_STOCK}")
-
 # Funciones cacheadas
 @st.cache_data
 def cargar_datos():
