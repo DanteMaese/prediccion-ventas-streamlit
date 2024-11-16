@@ -119,10 +119,22 @@ forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], o
 # Mostrar resultados en Streamlit
 st.title("Predicción Consolidada de Ventas - Campus MTY")
 
-# Mostrar el DataFrame consolidado con formato mejorado
+# Seleccionar columnas relevantes
 columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
+
+# Formatear el DataFrame
 if not forecast_consolidado.empty:
     st.subheader("Predicción Consolidada para los Productos Seleccionados")
+    
+    # Convertir el GTIN a string para evitar formato numérico con comas
+    forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype(str)
+    
+    # Formatear columnas de predicciones para mostrar dos decimales
+    columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
+    for columna in columnas_prediccion:
+        forecast_consolidado[columna] = forecast_consolidado[columna].map("{:.2f}".format)
+    
+    # Mostrar el DataFrame con formato mejorado
     st.dataframe(forecast_consolidado[columnas_para_mostrar], use_container_width=True)
 else:
     st.write("No se encontraron predicciones consolidadas.")
@@ -134,17 +146,13 @@ else:
 # Filtro 1: Selección de productos
 st.subheader("Filtrar por Producto")
 productos_seleccionados = st.multiselect(
-    "Escribe el nombre de un producto, selecciona uno o varios productos de la lista.",)
-    options=forecast_pivot['Producto'].unique()
+    "Escribe el nombre de un producto, selecciona uno o varios productos de la lista.",
+    options=forecast_consolidado['Producto'].unique()
 )
 
 # Filtro 2: Selección de categorías
 st.subheader("Filtrar por Categoría")
 categorias_seleccionadas = st.multiselect(
-    "Selecciona una o varias categorías de la lista.",)
-    options=forecast_pivot['Categoría'].unique()
+    "Selecciona una o varias categorías de la lista.",
+    options=forecast_consolidado['Categoría'].unique()
 
-# --- Gráfico 1: Comparación de Stock vs Predicciones por Categoría ---
-st.subheader("Comparación de Stock vs Predicciones por Categoría")
-comparacion_categoria = forecast_pivot.groupby('Categoría')[['Stock', 'Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']].sum().reset_index()
-st.bar_chart(data=comparacion_categoria.set_index('Categoría'))
