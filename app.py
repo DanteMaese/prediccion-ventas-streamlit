@@ -132,39 +132,22 @@ if not prediccion_productos.empty:
 else:
     st.write("No se encontraron predicciones para los productos seleccionados.")
 
+# --- Gráfico 1: Comparación de Stock vs Predicciones por Categoría ---
+st.subheader("Comparación de Stock vs Predicciones por Categoría")
 
-    import streamlit as st
-import pandas as pd
-import numpy as np
+# Agrupar datos por Categoría
+comparacion_categoria = prediccion_productos.groupby('Categoría')[['Stock', 'Predicción de Unidades']].sum().reset_index()
 
-# --- Gráfico 1: Comparación de Stock vs Unidades Predichas ---
-st.subheader("Comparación de Stock vs Unidades Predichas")
-st.bar_chart(data=prediccion_productos.set_index('Producto')[['Stock', 'Predicción de Unidades']])
+# Mostrar gráfico de barras agrupadas
+st.bar_chart(data=comparacion_categoria.set_index('Categoría'))
 
-# --- Gráfico 2: Productos con Riesgo de Quedarse Sin Stock ---
-st.subheader("Productos con Riesgo de Quedarse Sin Stock")
-productos_riesgo = prediccion_productos[prediccion_productos['Predicción de Unidades'] > prediccion_productos['Stock']]
-if not productos_riesgo.empty:
-    st.bar_chart(data=productos_riesgo.set_index('Producto')['Predicción de Unidades'])
+# --- Gráfico 2: Categorías con Riesgo de Quedarse Sin Stock ---
+st.subheader("Categorías con Riesgo de Quedarse Sin Stock")
+
+# Identificar categorías en riesgo
+categorias_riesgo = comparacion_categoria[comparacion_categoria['Predicción de Unidades'] > comparacion_categoria['Stock']]
+
+if not categorias_riesgo.empty:
+    st.bar_chart(data=categorias_riesgo.set_index('Categoría')[['Predicción de Unidades']])
 else:
-    st.write("No hay productos con riesgo de quedarse sin stock.")
-
-# --- Gráfico 3: Predicciones de Ventas por Campus ---
-st.subheader("Predicciones de Ventas por Campus")
-ventas_por_campus = prediccion_productos.groupby('Campus')['Predicción de Unidades'].sum().reset_index()
-st.bar_chart(data=ventas_por_campus.set_index('Campus'))
-
-# --- Gráfico 4: Variación de Predicciones a lo Largo del Tiempo ---
-st.subheader("Variación de Predicciones a lo Largo del Tiempo")
-producto_seleccionado = st.selectbox("Seleccione un producto para ver tendencias:", prediccion_productos['Producto'].unique())
-prediccion_producto = prediccion_productos[prediccion_productos['Producto'] == producto_seleccionado]
-if not prediccion_producto.empty:
-    st.line_chart(data=prediccion_producto.set_index('Fecha')['Predicción de Unidades'])
-else:
-    st.write("No hay datos de predicción para el producto seleccionado.")
-
-# --- Gráfico 5: Porcentaje de Stock Utilizado ---
-st.subheader("Porcentaje de Stock Utilizado")
-prediccion_productos['Porcentaje Utilizado'] = (prediccion_productos['Predicción de Unidades'] / prediccion_productos['Stock']) * 100
-prediccion_productos['Porcentaje Utilizado'] = prediccion_productos['Porcentaje Utilizado'].fillna(0)  # Manejar divisiones por cero
-st.bar_chart(data=prediccion_productos.set_index('Producto')['Porcentaje Utilizado'])
+    st.write("No hay categorías con riesgo de quedarse sin stock.")
