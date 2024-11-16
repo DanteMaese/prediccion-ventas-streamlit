@@ -257,13 +257,17 @@ df_filtrado['Anios de Inventario'] = df_filtrado['Stock'].astype(float) / df_fil
 # Aplicar la regla de rematar
 df_filtrado['Rematar'] = df_filtrado['Anios de Inventario'] > 10
 
-# Calcular el precio de remate
+# Calcular el precio de remate corregido
 df_filtrado['Precio de Remate'] = (
-    df_filtrado['Promedio Mensual'] * df_filtrado['Precio_Unitario'].astype(float)
-) - (
-    df_filtrado['Promedio Mensual'] * df_filtrado['Costo_Unitario'].astype(float)
-) / df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1) +
+    (
+        df_filtrado['Promedio Mensual'] * df_filtrado['Precio_Unitario'].astype(float)
+    ) - (
+        df_filtrado['Promedio Mensual'] * df_filtrado['Costo_Unitario'].astype(float)
+    )
+) / (
+    df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1) +
     df_filtrado['Piezas_Vendidas'].astype(float)
+)
 
 # Formatear columnas para visualización
 columnas_formatear = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
