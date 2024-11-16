@@ -241,7 +241,7 @@ df_adicional['GTIN'] = df_adicional['GTIN'].astype('int64')
 # Merge con el DataFrame Filtrado
 df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 
-# Calcular el Precio de Remate (20% arriba del costo unitario)
+# Calcular el Precio de Remate
 df_filtrado['Precio de Remate'] = df_filtrado['Costo Unitario'] * 1.2
 
 # Calcular el Total de Predicciones
@@ -250,33 +250,35 @@ df_filtrado['Total Predicciones'] = df_filtrado[['Pred. Sep 2024', 'Pred. Oct 20
 # Calcular el exceso de stock según la regla
 df_filtrado['Exceso de Stock'] = df_filtrado['Stock'] > (df_filtrado['Total Predicciones'] * 1.6)
 
-# Filtrar productos con exceso de stock
+# Verificar que existen filas con exceso de stock
 productos_a_rematar = df_filtrado[df_filtrado['Exceso de Stock']]
 
 if not productos_a_rematar.empty:
-    # Gráfico de Total Predicciones vs. Stock
-    fig = px.bar(
-        productos_a_rematar,
-        x='Producto',
-        y=['Total Predicciones', 'Stock'],
-        title="Análisis de Liquidación: Productos con Exceso de Stock",
-        labels={'value': 'Unidades', 'variable': 'Concepto'},
-        barmode='group',
-        text_auto=True,  # Mostrar los valores encima de las barras
-        color_discrete_map={
-            'Total Predicciones': 'blue',
-            'Stock': 'green'
-        }
-    )
-    fig.update_layout(
-        xaxis_title="Productos",
-        yaxis_title="Unidades",
-        legend_title="Concepto",
-        height=500,  # Ajustar la altura para mejorar la visualización
-        margin=dict(t=50, b=50),
-        font=dict(size=12)  # Tamaño de fuente consistente
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    # Asegurarse de que los datos sean adecuados para el gráfico
+    if 'Producto' in productos_a_rematar.columns and 'Total Predicciones' in productos_a_rematar.columns and 'Stock' in productos_a_rematar.columns:
+        # Gráfico de Total Predicciones vs. Stock
+        fig = px.bar(
+            productos_a_rematar,
+            x='Producto',
+            y=['Total Predicciones', 'Stock'],
+            title="Análisis de Liquidación: Productos con Exceso de Stock",
+            labels={'value': 'Unidades', 'variable': 'Concepto'},
+            barmode='group',
+            text_auto=True,  # Mostrar los valores encima de las barras
+            color_discrete_map={
+                'Total Predicciones': 'blue',
+                'Stock': 'green'
+            }
+        )
+        fig.update_layout(
+            xaxis_title="Productos",
+            yaxis_title="Unidades",
+            legend_title="Concepto",
+            height=500,  # Ajustar la altura para mejorar la visualización
+            margin=dict(t=50, b=50),
+            font=dict(size=12)  # Tamaño de fuente consistente
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
     # Tabla Complementaria
     st.subheader("Detalles de Productos a Rematar")
