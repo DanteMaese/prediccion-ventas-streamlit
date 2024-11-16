@@ -99,23 +99,17 @@ forecast_consolidado = forecast_df.pivot_table(
 
 # Renombrar columnas según las fechas mapeadas
 fechas_mapeo = {
-    pd.Timestamp('2024-09-30'): 'Septiembre 2024',
-    pd.Timestamp('2024-10-31'): 'Octubre 2024',
-    pd.Timestamp('2024-11-30'): 'Noviembre 2024'
+    pd.Timestamp('2024-09-30'): 'Pred. Sep 2024',
+    pd.Timestamp('2024-10-31'): 'Pred. Oct 2024',
+    pd.Timestamp('2024-11-30'): 'Pred. Nov 2024'
 }
 forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
-
-# Validar que las columnas de predicción existan
-for columna in ['Septiembre 2024', 'Octubre 2024', 'Noviembre 2024']:
-    if columna not in forecast_consolidado.columns:
-        forecast_consolidado[columna] = 0
 
 # Asegurarse de que GTIN en forecast_df y stock_df esté en el mismo formato
 forecast_df['GTIN'] = forecast_df['GTIN'].astype('int64')  # Convertir GTIN en forecast_df a int
 stock_df['GTIN'] = stock_df['GTIN'].astype('int64')  # Convertir GTIN en stock_df a int
 
 # --- Cargar el archivo de stock y realizar el join ---
-# Asegurarse de que GTIN en ambos DataFrames sea del mismo tipo
 forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
 stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 
@@ -126,7 +120,7 @@ forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], o
 st.title("Predicción Consolidada de Ventas - Campus MTY")
 
 # Mostrar el DataFrame consolidado con formato mejorado
-columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Septiembre 2024', 'Octubre 2024', 'Noviembre 2024', 'Stock']
+columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
 if not forecast_consolidado.empty:
     st.subheader("Predicción Consolidada para los Productos Seleccionados")
     st.dataframe(forecast_consolidado[columnas_para_mostrar], use_container_width=True)
@@ -136,6 +130,19 @@ else:
 # Final Parte 3
 
 # Inicio Part 4
+
+# Filtro 1: Selección de productos
+st.subheader("Filtrar por Producto")
+productos_seleccionados = st.multiselect(
+    "Escribe el nombre de un producto, selecciona uno o varios productos de la lista.",
+    options=forecast_pivot['Producto'].unique()
+)
+
+# Filtro 2: Selección de categorías
+st.subheader("Filtrar por Categoría")
+categorias_seleccionadas = st.multiselect(
+    "Selecciona una o varias categorías de la lista.",
+    options=forecast_pivot['Categoría'].unique()
 
 # --- Gráfico 1: Comparación de Stock vs Predicciones por Categoría ---
 st.subheader("Comparación de Stock vs Predicciones por Categoría")
