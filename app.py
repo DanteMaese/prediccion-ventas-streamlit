@@ -115,8 +115,10 @@ forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], o
 # Mostrar resultados en Streamlit
 st.title("Predicción Consolidada de Ventas - Campus MTY")
 
+# Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
+forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
+
 # Filtros para Producto y Categoría
-# Ordenar productos alfabéticamente
 productos_seleccionados = st.multiselect(
     "Escribe o selecciona uno o varios productos:",
     options=sorted(forecast_consolidado['Producto'].unique())  # Ordenar productos alfabéticamente
