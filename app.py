@@ -245,7 +245,7 @@ df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 # Seleccionar columnas relevantes para visualización
 columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 
                          'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 
-                         'Stock', 'Total_Piezas', 'Precio_Unitario', 'Costo_Unitario']
+                         'Stock', 'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario']
 
 # Mostrar el DataFrame actualizado en Streamlit
 if not df_filtrado.empty:
