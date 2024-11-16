@@ -100,13 +100,24 @@ productos_seleccionados = st.multiselect(
 gtins_seleccionados = [int(producto.split(" - ")[0]) for producto in productos_seleccionados]
 prediccion_productos = forecast_df[forecast_df['GTIN'].isin(gtins_seleccionados)]
 
-# Mostrar la predicción para los productos seleccionados
+# Mostrar la predicción para los productos seleccionados con formato mejorado
 if not prediccion_productos.empty:
     st.subheader("Predicción para los Productos Seleccionados")
-    st.write(prediccion_productos[['GTIN', 'Producto', 'Categoría', 'Campus', 'Fecha', 'Predicción de Unidades', 'Stock']])
+    
+    # Aplicar estilos a la tabla
+    styled_df = prediccion_productos[['GTIN', 'Producto', 'Categoría', 'Campus', 'Fecha', 'Predicción de Unidades', 'Stock']].style.format(
+        {
+            'Predicción de Unidades': '{:.0f}',  # Sin decimales
+            'Stock': '{:.0f}',  # Sin decimales
+        }
+    ).set_properties(
+        **{
+            'text-align': 'center',  # Centrar el texto
+            'width': '100px'  # Ajustar el ancho de las columnas
+        }
+    ).hide(axis="index")  # Ocultar el índice de pandas
+    
+    # Mostrar la tabla con `st.dataframe` para hacerla interactiva
+    st.dataframe(styled_df, use_container_width=True)  # Usar el ancho total del contenedor
 else:
     st.write("No se encontraron predicciones para los productos seleccionados.")
-
-# Mostrar reglas de negocio o notas adicionales
-st.write("**Regla de negocio**: La predicción se basa en el análisis de ventas históricas utilizando un modelo de Exponential Smoothing.")
-st.write("**Nota**: Las predicciones son aproximadas y pueden variar según estacionalidad y tendencia histórica.")
