@@ -109,9 +109,11 @@ if not forecast_consolidado.empty:
     st.subheader("Predicción Consolidada para los Productos Seleccionados")
     st.dataframe(forecast_consolidado[columnas_para_mostrar], use_container_width=True)
 else:
-    st.write("No se encontraron predicciones consolidadas."
+    st.write("No se encontraron predicciones consolidadas.")
 
 # Final Parte 3
+
+# Inicio Part 4
 
 # --- Gráfico 1: Comparación de Stock vs Predicciones por Categoría ---
 st.subheader("Comparación de Stock vs Predicciones por Categoría")
