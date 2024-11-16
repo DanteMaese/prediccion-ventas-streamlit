@@ -195,7 +195,7 @@ if not df_filtrado.empty:
     # Configurar el diseño del gráfico
     fig.update_layout(
         title="Comparación: Total Predicciones vs. Stock Disponible",
-        xaxis_title="Categoría",
+        xaxis_title="",
         yaxis_title="Unidades",
         barmode='group',  # Mostrar las barras agrupadas
         legend=dict(
@@ -206,7 +206,7 @@ if not df_filtrado.empty:
             x=1
         ),
         font=dict(size=12),
-        height=400  # Altura del gráfico
+        height=380  # Altura del gráfico
     )
 
     # Mostrar el gráfico
