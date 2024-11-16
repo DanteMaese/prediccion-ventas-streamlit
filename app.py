@@ -103,7 +103,7 @@ forecast_df['GTIN - Producto'] = forecast_df['GTIN'].astype(str) + " - " + forec
 
 # Campo de selección múltiple con instrucciones
 productos_seleccionados = st.multiselect(
-    ""Escribe el nombre de un producto, selecciona uno de la lista o elige varios productos.",
+    "Escribe el nombre de un producto, selecciona uno de la lista o elige varios productos.",
     options=forecast_df['GTIN - Producto'].unique()
 )
 
