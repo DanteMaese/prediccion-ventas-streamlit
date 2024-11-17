@@ -225,8 +225,6 @@ else:
 
 # --- Plot 2
 
-# --- Plot 2
-
 # Extraer las columnas necesarias del archivo original
 df_adicional = df[['GTIN', 'Piezas', 'Precio Unitario', 'Costo Unitario']].copy()
 
@@ -334,5 +332,13 @@ if not productos_a_rematar.empty:
     st.subheader("Precio de Remate")
     for index, row in productos_a_rematar.iterrows():
         st.metric(
+            label=f"Producto: {row['Producto']}",
+            value=f"${float(row['Precio de Remate']):.2f}",
+            delta=None,
+            delta_color="normal"
+        )
+else:
+    st.write("No se encontraron productos con exceso de stock para liquidar.")
+
 
 # Final Parte 4
