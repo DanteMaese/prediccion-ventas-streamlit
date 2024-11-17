@@ -245,34 +245,50 @@ df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 # Reemplazar valores NaN en columnas relevantes
 df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0.00)
 
-# Calcular el promedio mensual basado en predicciones y piezas vendidas
+##### ###### Cálculo de Unidades para Rematar ###### ######
+
+# Calcular el promedio mensual basado en predicciones y piezas vendidas (historico)
 df_filtrado['Promedio Mensual'] = (
     df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1) +
     df_filtrado['Piezas_Vendidas'].astype(float)
 ) / 12
 
-# Calcular los años de inventario
-df_filtrado['Anios de Inventario'] = df_filtrado['Stock'].astype(float) / df_filtrado['Promedio Mensual']
+# Excedente de Inventario Actual - Excedente = Stock - (Promedio Mensual * 6). Si este excedente es mayor a 0, se consideran estas unidades como rematables.
+df_filtrado['Unidades para Rematar'] = (
+    df_filtrado['Stock'].astype(float) - (df_filtrado['Promedio Mensual'] * 6)
+).clip(lower=0)  # Evitar valores negativos
 
 # Aplicar la regla de rematar
-df_filtrado['Rematar'] = df_filtrado['Anios de Inventario'] > 10
+#df_filtrado['Rematar'] = df_filtrado['Anios de Inventario'] > 10
 
-# Calcular el precio de remate corregido
-df_filtrado['Precio de Remate'] = (
-    (
-        df_filtrado['Promedio Mensual'] * df_filtrado['Precio_Unitario'].astype(float)
-    ) - (
-        df_filtrado['Promedio Mensual'] * df_filtrado['Costo_Unitario'].astype(float)
-    )
-) / (
-    df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1) +
-    df_filtrado['Piezas_Vendidas'].astype(float)
+# # Calcular el precio de remate corregido
+# df_filtrado['Precio de Remate'] = (
+#     (
+#         df_filtrado['Promedio Mensual'] * df_filtrado['Precio_Unitario'].astype(float)
+#     ) - (
+#         df_filtrado['Promedio Mensual'] * df_filtrado['Costo_Unitario'].astype(float)
+#     )
+# ) / (
+#     df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1) +
+#     df_filtrado['Piezas_Vendidas'].astype(float)
+# )
+
+# Precio de Remate por Unidad:
+df_filtrado['Precio de Remate por Unidad'] = (
+    (df_filtrado['Precio_Unitario'] - df_filtrado['Costo_Unitario']) * 0.8
+).clip(lower=0)  # Evitar precios negativos
+
+# Total a Generar por Remate:
+df_filtrado['Total a Generar por Remate'] = (
+    df_filtrado['Unidades para Rematar'] * df_filtrado['Precio de Remate por Unidad']
 )
+
+##### ###### Cálculo de Unidades para Rematar ###### ######
 
 # Formatear columnas para visualización
 columnas_formatear = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
                       'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
-                      'Stock', 'Promedio Mensual', 'Anios de Inventario', 'Precio de Remate']
+                      'Stock', 'Promedio Mensual', 'Unidades para Rematar', 'Precio de Remate por Unidad','Total a Generar por Remate']
 
 # Aplicar formato a las columnas numéricas
 df_filtrado[columnas_formatear] = df_filtrado[columnas_formatear].applymap(
@@ -283,7 +299,7 @@ df_filtrado[columnas_formatear] = df_filtrado[columnas_formatear].applymap(
 columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
                          'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
                          'Stock', 'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
-                         'Promedio Mensual', 'Anios de Inventario', 'Precio de Remate']
+                         'Promedio Mensual', 'Unidades para Rematar', 'Precio de Remate por Unidad','Total a Generar por Remate']
 
 if not df_filtrado.empty:
     st.subheader("Análisis de Liquidación con Métricas Adicionales")
@@ -294,51 +310,51 @@ else:
 
 ############################################################################################
 
-import plotly.express as px
+# import plotly.express as px
 
-# Crear un DataFrame con solo los productos marcados para remate
-productos_a_rematar = df_filtrado[df_filtrado['Rematar']]
+# # Crear un DataFrame con solo los productos marcados para remate
+# productos_a_rematar = df_filtrado[df_filtrado['Rematar']]
 
-if not productos_a_rematar.empty:
-    # Crear un DataFrame para el gráfico (solo piezas vendidas y stock)
-    df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock']].copy()
+# if not productos_a_rematar.empty:
+#     # Crear un DataFrame para el gráfico (solo piezas vendidas y stock)
+#     df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock']].copy()
 
-    # Crear el gráfico de barras agrupadas
-    fig = px.bar(
-        df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock']),
-        x='Producto',
-        y='value',
-        color='variable',
-        title="Análisis de Liquidación: Inventario y Predicciones",
-        labels={'value': 'Unidades', 'variable': 'Métricas'},
-        barmode='group',
-        text_auto=True
-    )
+#     # Crear el gráfico de barras agrupadas
+#     fig = px.bar(
+#         df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock']),
+#         x='Producto',
+#         y='value',
+#         color='variable',
+#         title="Análisis de Liquidación: Inventario y Predicciones",
+#         labels={'value': 'Unidades', 'variable': 'Métricas'},
+#         barmode='group',
+#         text_auto=True
+#     )
 
-    # Ajustar el diseño del gráfico
-    fig.update_layout(
-        xaxis_title="Productos",
-        yaxis_title="Unidades",
-        legend_title="Métricas",
-        height=400,
-        margin=dict(t=50, b=50),
-        font=dict(size=12)
-    )
+#     # Ajustar el diseño del gráfico
+#     fig.update_layout(
+#         xaxis_title="Productos",
+#         yaxis_title="Unidades",
+#         legend_title="Métricas",
+#         height=400,
+#         margin=dict(t=50, b=50),
+#         font=dict(size=12)
+#     )
 
-    # Mostrar el gráfico en Streamlit
-    st.plotly_chart(fig, use_container_width=True)
+#     # Mostrar el gráfico en Streamlit
+#     st.plotly_chart(fig, use_container_width=True)
 
-    # Mostrar KPI para el precio de remate
-    st.subheader("Precio de Remate")
-    for index, row in productos_a_rematar.iterrows():
-        st.metric(
-            label=f"Producto: {row['Producto']}",
-            value=f"${float(row['Precio de Remate']):.2f}",
-            delta=None,
-            delta_color="normal"
-        )
-else:
-    st.write("No se encontraron productos con exceso de stock para liquidar.")
+#     # Mostrar KPI para el precio de remate
+#     st.subheader("Precio de Remate")
+#     for index, row in productos_a_rematar.iterrows():
+#         st.metric(
+#             label=f"Producto: {row['Producto']}",
+#             value=f"${float(row['Precio de Remate']):.2f}",
+#             delta=None,
+#             delta_color="normal"
+#         )
+# else:
+#     st.write("No se encontraron productos con exceso de stock para liquidar.")
 
 
 # Final Parte 4
