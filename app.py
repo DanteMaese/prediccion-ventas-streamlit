@@ -312,11 +312,14 @@ else:
 
 import plotly.express as px
 
+# Asegurar que la columna 'Unidades para Rematar' sea numérica y manejar valores no válidos
+df_filtrado['Unidades para Rematar'] = pd.to_numeric(df_filtrado['Unidades para Rematar'], errors='coerce').fillna(0)
+
 # Crear un DataFrame con solo los productos marcados para remate
 productos_a_rematar = df_filtrado[df_filtrado['Unidades para Rematar'] > 0]
 
 if not productos_a_rematar.empty:
-    # Crear un DataFrame para el gráfico (solo unidades para rematar, stock, y piezas vendidas)
+    # Crear un DataFrame para el gráfico (solo piezas vendidas, stock y unidades para rematar)
     df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock', 'Unidades para Rematar']].copy()
 
     # Crear el gráfico de barras agrupadas
@@ -355,6 +358,5 @@ if not productos_a_rematar.empty:
         )
 else:
     st.write("No se encontraron productos con exceso de stock para liquidar.")
-
 
 # Final Parte 4
