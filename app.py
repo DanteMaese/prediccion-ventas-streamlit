@@ -310,51 +310,51 @@ else:
 
 ############################################################################################
 
-# import plotly.express as px
+import plotly.express as px
 
-# # Crear un DataFrame con solo los productos marcados para remate
-# productos_a_rematar = df_filtrado[df_filtrado['Rematar']]
+# Crear un DataFrame con solo los productos marcados para remate
+productos_a_rematar = df_filtrado[df_filtrado['Unidades para Rematar'] > 0]
 
-# if not productos_a_rematar.empty:
-#     # Crear un DataFrame para el gráfico (solo piezas vendidas y stock)
-#     df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock']].copy()
+if not productos_a_rematar.empty:
+    # Crear un DataFrame para el gráfico (solo unidades para rematar, stock, y piezas vendidas)
+    df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock', 'Unidades para Rematar']].copy()
 
-#     # Crear el gráfico de barras agrupadas
-#     fig = px.bar(
-#         df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock']),
-#         x='Producto',
-#         y='value',
-#         color='variable',
-#         title="Análisis de Liquidación: Inventario y Predicciones",
-#         labels={'value': 'Unidades', 'variable': 'Métricas'},
-#         barmode='group',
-#         text_auto=True
-#     )
+    # Crear el gráfico de barras agrupadas
+    fig = px.bar(
+        df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock', 'Unidades para Rematar']),
+        x='Producto',
+        y='value',
+        color='variable',
+        title="Análisis de Liquidación: Inventario y Predicciones",
+        labels={'value': 'Unidades', 'variable': 'Métricas'},
+        barmode='group',
+        text_auto=True
+    )
 
-#     # Ajustar el diseño del gráfico
-#     fig.update_layout(
-#         xaxis_title="Productos",
-#         yaxis_title="Unidades",
-#         legend_title="Métricas",
-#         height=400,
-#         margin=dict(t=50, b=50),
-#         font=dict(size=12)
-#     )
+    # Ajustar el diseño del gráfico
+    fig.update_layout(
+        xaxis_title="Productos",
+        yaxis_title="Unidades",
+        legend_title="Métricas",
+        height=400,
+        margin=dict(t=50, b=50),
+        font=dict(size=12)
+    )
 
-#     # Mostrar el gráfico en Streamlit
-#     st.plotly_chart(fig, use_container_width=True)
+    # Mostrar el gráfico en Streamlit
+    st.plotly_chart(fig, use_container_width=True)
 
-#     # Mostrar KPI para el precio de remate
-#     st.subheader("Precio de Remate")
-#     for index, row in productos_a_rematar.iterrows():
-#         st.metric(
-#             label=f"Producto: {row['Producto']}",
-#             value=f"${float(row['Precio de Remate']):.2f}",
-#             delta=None,
-#             delta_color="normal"
-#         )
-# else:
-#     st.write("No se encontraron productos con exceso de stock para liquidar.")
+    # Mostrar KPI para el precio de remate
+    st.subheader("Precio de Remate")
+    for index, row in productos_a_rematar.iterrows():
+        st.metric(
+            label=f"Producto: {row['Producto']}",
+            value=f"${float(row['Precio de Remate por Unidad']):.2f}",
+            delta=None,
+            delta_color="normal"
+        )
+else:
+    st.write("No se encontraron productos con exceso de stock para liquidar.")
 
 
 # Final Parte 4
