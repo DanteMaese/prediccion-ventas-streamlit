@@ -53,7 +53,7 @@ def generar_predicciones(monthly_df):
     return pd.concat(forecast_list).reset_index(drop=True)
 
 # Final Parte 1
-############################################################################################
+########################################################################################################################################################################################
 # Inicio Parte 2
 
 # --- Cargar y procesar los datos usando las funciones cacheadas ---
@@ -68,7 +68,7 @@ info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
 forecast_df = forecast_df.merge(info_producto, on='GTIN', how='left')
 
 # Final Parte 2
-############################################################################################
+########################################################################################################################################################################################
 # Inicio Parte 3
 
 # Definir la ruta del archivo BD Stock
@@ -159,7 +159,7 @@ else:
     st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
     
 # Final Parte 3
-############################################################################################
+########################################################################################################################################################################################
 # Inicio Parte 4
 
 # -- Plot 1
@@ -258,21 +258,6 @@ df_filtrado['Unidades para Rematar'] = (
     df_filtrado['Stock'].astype(float) - (df_filtrado['Promedio Mensual'] * 6)
 ).clip(lower=0)  # Evitar valores negativos
 
-# Aplicar la regla de rematar
-#df_filtrado['Rematar'] = df_filtrado['Anios de Inventario'] > 10
-
-# # Calcular el precio de remate corregido
-# df_filtrado['Precio de Remate'] = (
-#     (
-#         df_filtrado['Promedio Mensual'] * df_filtrado['Precio_Unitario'].astype(float)
-#     ) - (
-#         df_filtrado['Promedio Mensual'] * df_filtrado['Costo_Unitario'].astype(float)
-#     )
-# ) / (
-#     df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1) +
-#     df_filtrado['Piezas_Vendidas'].astype(float)
-# )
-
 # Precio de Remate por Unidad:
 df_filtrado['Precio de Remate por Unidad'] = (
     (df_filtrado['Precio_Unitario'] - df_filtrado['Costo_Unitario']) * 0.8
@@ -306,7 +291,6 @@ if not df_filtrado.empty:
     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 else:
     st.write("No se encontraron datos para los filtros seleccionados.")
-
 
 ############################################################################################
 
