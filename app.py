@@ -9,46 +9,37 @@ RUTA_ARCHIVO = "Ventas.xlsx"
 
 st.title("Detalle de ventas futuras y prescripción de inventarios")
 
-# Cargar datos iniciales para obtener los campus disponibles
 @st.cache_data
 def cargar_lista_campus():
-    """Carga los datos del archivo y retorna la lista de campus únicos."""
     df = pd.read_excel(RUTA_ARCHIVO)
-    df = df[df['Empresa'] != 'Tecmilenio']  # Excluir registros de Tecmilenio
-    return sorted(df['Campus'].dropna().unique())  # Lista de campus ordenada y sin NaN
+    df = df[df['Empresa'] != 'Tecmilenio']
+    return sorted(df['Campus'].dropna().unique())
 
 lista_campus = cargar_lista_campus()
 
-# Selectbox para que el usuario seleccione el campus
 campus_seleccionado = st.selectbox(
     "Elige un campus de la lista:",
-    options=["Selecciona un campus"] + lista_campus,  # Placeholder y opciones
-    index=0  # Seleccionar el placeholder por defecto
+    options=["Campus"] + lista_campus,
+    index=0
 )
 
-# Validar si el usuario seleccionó un campus válido
-if campus_seleccionado == "Selecciona un campus":
-    st.warning("Por favor, selecciona un campus para continuar.")
-    st.stop()  # Detener la ejecución hasta que el usuario elija un campus válido
+if campus_seleccionado == "Campus":
+    st.stop()
 
-# Cargar datos específicos para el campus seleccionado
 @st.cache_data
 def cargar_datos(campus):
-    """Carga y filtra los datos según el campus seleccionado."""
     df = pd.read_excel(RUTA_ARCHIVO)
-    df = df[df['Empresa'] != 'Tecmilenio']  # Excluir registros de Tecmilenio
-    df = df[df['Campus'] == campus]  # Filtrar solo para el campus seleccionado
+    df = df[df['Empresa'] != 'Tecmilenio']
+    df = df[df['Campus'] == campus]
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
     df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
     df_TS = df_TS.set_index('Fecha')
-    return df, df_TS
+    return df_TS
 
-# Cargar los datos filtrados por campus
-df, df_TS = cargar_datos(campus_seleccionado)
+df_TS = cargar_datos(campus_seleccionado)
 
 @st.cache_data
 def procesar_datos(df_TS):
-    """Agrupa los datos por mes y crea un DataFrame con todas las combinaciones de fechas, productos y campus."""
     monthly_df = df_TS.groupby(['GTIN', 'Campus']).resample('M')['Piezas'].sum().reset_index()
     full_date_range = pd.date_range(start=monthly_df['Fecha'].min(), end='2024-08-31', freq='M')
     product_campus_combinations = pd.MultiIndex.from_product(
@@ -59,12 +50,10 @@ def procesar_datos(df_TS):
     monthly_df = monthly_df.set_index('Fecha')
     return monthly_df
 
-# Procesar los datos
 monthly_df = procesar_datos(df_TS)
 
 @st.cache_data
 def generar_predicciones(monthly_df):
-    """Aplica Exponential Smoothing para predecir las ventas de los próximos 3 meses por cada combinación de producto y campus."""
     forecast_list = []
     for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus']):
         group = group.resample('M').sum()['Piezas']
@@ -81,18 +70,14 @@ def generar_predicciones(monthly_df):
         forecast_list.append(forecast_df)
     return pd.concat(forecast_list).reset_index(drop=True)
 
-# Generar predicciones para el campus seleccionado
 forecast_df = generar_predicciones(monthly_df)
-
-# Continuar con la visualización o análisis
-st.write("Predicciones generadas exitosamente para el campus:", campus_seleccionado)
 
 # Final Parte 1
 
 # Inicio Parte 2
 
 # --- Cargar y procesar los datos usando las funciones cacheadas ---
-df, df_TS = cargar_datos()
+df, df_TS = cargar_datos(campus_seleccionado)  # Pasar el campus seleccionado
 monthly_df = procesar_datos(df_TS)
 forecast_df = generar_predicciones(monthly_df)
 
