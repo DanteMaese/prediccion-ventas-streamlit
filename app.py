@@ -34,7 +34,7 @@ def procesar_datos(df_TS):
 
 # --- Selector de Campus ---
 # Obtener lista única de campus
-lista_campus = sorted(df['Campus'].dropna().unique())
+lista_campus = sorted(df_TS['Campus'].dropna().unique())
 
 # Mostrar selector de campus
 campus_seleccionado = st.selectbox(
