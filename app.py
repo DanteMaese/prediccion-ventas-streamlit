@@ -83,6 +83,9 @@ forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
 
 # Inicio Parte 3
 
+# Definir la ruta del archivo BD Stock
+RUTA_STOCK = "Stock.xlsx"
+
 # Extraer las columnas únicas de GTIN, Producto y Categoría para el join
 info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
 
