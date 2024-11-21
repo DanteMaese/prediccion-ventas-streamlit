@@ -115,6 +115,16 @@ stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 # Realizar el join para agregar el stock
 forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
 
+##
+# Verificar GTINs sin coincidencia
+gtin_no_match = forecast_consolidado[forecast_consolidado['Stock'].isnull()]
+if not gtin_no_match.empty:
+    st.write("GTINs sin coincidencia en stock_df:", gtin_no_match[['GTIN', 'Producto']])
+
+# Rellenar valores nulos en Stock después del merge
+forecast_consolidado['Stock'] = forecast_consolidado['Stock'].fillna(0)
+##
+
 # Mostrar resultados en Streamlit
 # st.title("Predicción Consolidada de Ventas - Campus MTY")
 
