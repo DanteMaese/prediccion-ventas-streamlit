@@ -7,23 +7,14 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 RUTA_ARCHIVO = "Ventas.xlsx"
 
+st.title("TECStore")
+st.subtitle("Detalle de ventas futuras y prescripción de inventarios")
+
 @st.cache_data
-def cargar_datos_ventas():
+def cargar_datos():
     """Carga y limpia los datos de Excel, excluyendo registros de 'Tecmilenio'."""
     df = pd.read_excel(RUTA_ARCHIVO)
-    if df.empty:
-        st.error("El archivo no contiene datos.")
-        st.stop()
-    
-    df = df[df['Empresa'] != 'Tecmilenio']  # Excluir registros de 'Tecmilenio'
-    
-    # Validar columnas requeridas
-    columnas_requeridas = ["Fecha", "GTIN", "Piezas", "Campus"]
-    if not all(col in df.columns for col in columnas_requeridas):
-        st.error(f"El archivo debe contener las columnas: {columnas_requeridas}")
-        st.stop()
-    
-    # Procesar las columnas necesarias
+    df = df[df['Empresa'] != 'Tecmilenio']  # Excluir registros de Tecmilenio
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
     df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
     df_TS = df_TS.set_index('Fecha')
@@ -33,8 +24,6 @@ def cargar_datos_ventas():
 def procesar_datos(df_TS):
     """Agrupa los datos por mes y crea un DataFrame con todas las combinaciones de fechas, productos y campus."""
     monthly_df = df_TS.groupby(['GTIN', 'Campus']).resample('M')['Piezas'].sum().reset_index()
-    
-    # Crear rango completo de fechas para asegurar consistencia
     full_date_range = pd.date_range(start=monthly_df['Fecha'].min(), end='2024-08-31', freq='M')
     product_campus_combinations = pd.MultiIndex.from_product(
         [monthly_df['GTIN'].unique(), monthly_df['Campus'].unique(), full_date_range],
@@ -44,16 +33,18 @@ def procesar_datos(df_TS):
     monthly_df = monthly_df.set_index('Fecha')
     return monthly_df
 
-# --- Selector de Campus ---
-df, df_TS = cargar_datos_ventas()
+# --- Cargar y procesar datos iniciales ---
+df, df_TS = cargar_datos()
+monthly_df = procesar_datos(df_TS)
 
+# --- Selector de Campus ---
 # Obtener lista única de campus
 lista_campus = sorted(df['Campus'].dropna().unique())
 
 # Mostrar selector de campus
 campus_seleccionado = st.selectbox(
     "Selecciona un campus para generar la predicción:",
-    options=["Campus"] + lista_campus,
+    options=["C"] + lista_campus,
     index=0
 )
 
@@ -62,10 +53,7 @@ if campus_seleccionado == "Campus":
     st.stop()
 
 # Filtrar datos según el campus seleccionado
-df_TS = df_TS[df_TS['Campus'] == campus_seleccionado]
-if df_TS.empty:
-    st.error("No se encontraron datos para el campus seleccionado.")
-    st.stop()
+monthly_df = monthly_df[monthly_df['Campus'] == campus_seleccionado]
 
 @st.cache_data
 def generar_predicciones(monthly_df):
@@ -85,21 +73,6 @@ def generar_predicciones(monthly_df):
         forecast_df['Predicción de Unidades'] = forecast_df['Predicción de Unidades'].clip(lower=0)
         forecast_list.append(forecast_df)
     return pd.concat(forecast_list).reset_index(drop=True)
-
-# Final Parte 1
-
-# Inicio Parte 2
-
-# --- Cargar y procesar los datos usando las funciones cacheadas ---
-df, df_TS = cargar_datos(campus_seleccionado)  # Pasar el campus seleccionado
-monthly_df = procesar_datos(df_TS)
-forecast_df = generar_predicciones(monthly_df)
-
-# Extraer las columnas únicas de GTIN, Producto y Categoría para el join
-info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
-
-# Realizar el join para agregar Producto y Categoría a forecast_df
-forecast_df = forecast_df.merge(info_producto, on='GTIN', how='left')
 
 # Final Parte 2
 
