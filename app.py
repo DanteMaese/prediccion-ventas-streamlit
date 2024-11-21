@@ -268,7 +268,6 @@ df_filtrado.loc[
     (df_filtrado['Stock'] <= 1.3 * df_filtrado['Suma Predicciones']),
     ['Estado Inventario', 'Acción Recomendada']
 ] = ["SAFE ZONE", "Inventario correcto"]
-]
 
 # COMPRA
 compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
