@@ -274,27 +274,27 @@ df_filtrado.loc[
 compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
 
 # Calcular cuántas piezas comprar
-piezas_a_comprar = df_filtrado['Suma Predicciones'].where(
-    df_filtrado['Stock'] == 0,  # Si Stock es 0, tomar directamente la suma de predicciones
-    1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']  # De lo contrario, calcular la diferencia
-)
+piezas_a_comprar = (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).clip(lower=0)
+
+# Si el stock es cero, comprar al menos la suma de predicciones
+piezas_a_comprar.loc[df_filtrado['Stock'] == 0] = df_filtrado['Suma Predicciones']
 
 # Asignar estado y acción recomendada para la condición de compra
 df_filtrado.loc[compra_condicion, 'Estado Inventario'] = "COMPRA"
 df_filtrado.loc[compra_condicion, 'Acción Recomendada'] = (
-    "Compra " + piezas_a_comprar[compra_condicion].astype(int).astype(str) + " piezas"
+    "Compra " + piezas_a_comprar[compra_condicion].round(2).astype(str) + " piezas"
 )
 
 # VENDE
 vende_condicion = df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones']
 
 # Calcular cuántas piezas rematar
-piezas_a_rematar = df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']
+piezas_a_rematar = (df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']).clip(lower=0)
 
 # Asignar estado y acción recomendada para la condición de venta
 df_filtrado.loc[vende_condicion, 'Estado Inventario'] = "VENDE"
 df_filtrado.loc[vende_condicion, 'Acción Recomendada'] = (
-    "Remata " + piezas_a_rematar[vende_condicion].astype(int).astype(str) + " piezas"
+    "Remata " + piezas_a_rematar[vende_condicion].round(2).astype(str) + " piezas"
 )
 
 ##### Fin de Cálculo basado en las Reglas de Negocio ######
