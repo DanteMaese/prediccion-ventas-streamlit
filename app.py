@@ -115,7 +115,7 @@ stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
 
 # Mostrar resultados en Streamlit
-st.title("Predicción Consolidada de Ventas - Campus MTY")
+# st.title("Predicción Consolidada de Ventas - Campus MTY")
 
 # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
 forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
@@ -145,7 +145,7 @@ columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 
 
 # Formatear y mostrar el DataFrame
 if not df_filtrado.empty:
-    #st.subheader("Predicción Consolidada para los Filtros Seleccionados")
+    st.subheader("Predicción Consolidada para los Filtros Seleccionados")
     
     # Convertir el GTIN a string para evitar formato numérico con comas
     df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
