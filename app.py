@@ -57,10 +57,18 @@ def generar_predicciones(monthly_df):
     forecast_list = []
     for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus']):
         group = group.resample('M').sum()['Piezas']
-        
-        if len(group) < 24:
-            st.warning(f"No hay suficientes datos para el producto {product} en el campus {campus}. Se omitirá.")
-            continue
+
+# Verificar si hay series temporales con menos de 24 datos antes de realizar cualquier predicción
+productos_insuficientes = [
+    (product, campus)
+    for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus'])
+    if len(group) < 24
+]
+
+# Si se encuentran productos con datos insuficientes, detener la ejecución
+if productos_insuficientes:
+    st.error("No es posible ejecutar la predicción debido a la falta de datos suficientes para algunos productos/campus.")
+    st.stop()
         
         model = ExponentialSmoothing(group, trend="add", seasonal="add", seasonal_periods=12)
         fit_model = model.fit()
