@@ -8,15 +8,32 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 # Definir la ruta del archivo como variable para facilidad de ajuste
 RUTA_ARCHIVO = "Ventas.xlsx"
 
-# --- Funciones de procesamiento con caché ---
+# Mostrar resultados en Streamlit
+st.title("Detalle de ventas futuras y prescripción de inventarios")
+
+# Obtener la lista única de campus desde el archivo de ventas
+df_inicial = pd.read_excel(RUTA_ARCHIVO)
+lista_campus = sorted(df_inicial['Campus'].unique())  # Lista de campus ordenada
+
+# Agregar un selectbox para seleccionar el campus
+campus_seleccionado = st.selectbox(
+    "Elige un campus de la lista:",
+     options=["Selecciona un campus"] + lista_campus,  # Agregar un placeholder al inicio de la lista
+     index=0  # Seleccionar el placeholder por defecto
+)
+
+# Validar si el usuario seleccionó un campus válido
+if campus_seleccionado == "Selecciona un campus":
+    st.warning("Por favor, selecciona un campus para continuar.")
+    st.stop()  # Detener la ejecución hasta que el usuario elija un campus válido
+
 @st.cache_data
 def cargar_datos(campus=None):
     df = pd.read_excel(RUTA_ARCHIVO)
-    df = df[df['Empresa'] != 'Tecmilenio'] # Excluir registros de Tecmilenio
- # Aplicar filtro dinámico por Campus
-    if campus:
+    df = df[df['Empresa'] != 'Tecmilenio'] # Excluir registros de Tecmilenio    
+     if campus:
         df = df[df['Campus'] == campus]  # Filtrar solo para el campus seleccionado
-    
+         
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
     df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
     df_TS = df_TS.set_index('Fecha')
@@ -113,22 +130,8 @@ stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 # Realizar el join para agregar el stock
 forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
 
-# Mostrar resultados en Streamlit
-st.title("Detalle de ventas futuras y prescripción de inventarios")
-
 # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
 forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
-
-# --- Filtro por Campus ---
-campus_opciones = forecast_consolidado['Campus'].unique()
-campus_seleccionado = st.selectbox(
-    "Elige un campus de la lista:",
-    options=campus_opciones,  # Obtener valores únicos de la columna Campus
-    index=list(campus_opciones).index("Monterrey") if "Monterrey" in campus_opciones else 0  # Seleccionar Monterrey por defecto
-)
-
-# Aplicar el filtro de Campus
-df_filtrado = forecast_consolidado[forecast_consolidado['Campus'] == campus_seleccionado].copy()
 
 # Filtros para Producto y Categoría
 productos_seleccionados = st.multiselect(
