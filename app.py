@@ -71,12 +71,6 @@ def generar_predicciones(monthly_df):
         forecast_list.append(forecast_df)
     return pd.concat(forecast_list).reset_index(drop=True)
 
-# Procesar los datos
-monthly_df = procesar_datos(df_TS)
-
-# Generar predicciones
-forecast_df = generar_predicciones(monthly_df)
-
 # Final Parte 1
 
 # Inicio Parte 2
