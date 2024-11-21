@@ -225,12 +225,38 @@ if not df_filtrado.empty:
 else:
     st.write("Por favor, selecciona un producto o categoría para visualizar las predicciones.")
 
-# --- Calcular Reglas de Negocio ---
+# --- Plot 2
+
+# Extraer las columnas necesarias del archivo original
+df_adicional = df[['GTIN', 'Piezas', 'Precio Unitario', 'Costo Unitario']].copy()
+
+# Calcular el total de piezas por GTIN
+df_adicional = df_adicional.groupby('GTIN', as_index=False).agg(
+    Piezas_Vendidas=('Piezas', 'sum'),
+    Precio_Unitario=('Precio Unitario', 'first'),  # Asume que el precio unitario es constante para cada GTIN
+    Costo_Unitario=('Costo Unitario', 'first')  # Asume que el costo unitario es constante para cada GTIN
+)
+
+# Asegurarnos de que GTIN en ambos DataFrames sea del mismo tipo
+df_filtrado['GTIN'] = df_filtrado['GTIN'].astype('int64')
+df_adicional['GTIN'] = df_adicional['GTIN'].astype('int64')
+
+# Merge para combinar la información adicional con df_filtrado
+df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
+
+# Rellenar valores nulos en Stock y asegurar tipo numérico
+df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0)
+df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
+
+##### ###### Cálculo basado en las Reglas de Negocio ###### ######
 
 # Calcular la suma de las predicciones de los próximos tres meses
 df_filtrado['Suma Predicciones'] = (
     df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1)
 )
+
+# Rellenar valores nulos en Suma Predicciones
+df_filtrado['Suma Predicciones'] = df_filtrado['Suma Predicciones'].fillna(0)
 
 # Inicializar columnas de Estado y Acción
 df_filtrado['Estado Inventario'] = None
@@ -247,53 +273,27 @@ df_filtrado.loc[
 compra_mask = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
 df_filtrado.loc[compra_mask, 'Estado Inventario'] = "COMPRA"
 df_filtrado.loc[compra_mask, 'Acción Recomendada'] = (
-    "Compra " + (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).astype(int).astype(str) + " piezas"
+    "Compra " + (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).fillna(0).astype(int).astype(str) + " piezas"
 )
 
 # Condición para VENDE
 vende_mask = df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones']
 df_filtrado.loc[vende_mask, 'Estado Inventario'] = "VENDE"
 df_filtrado.loc[vende_mask, 'Acción Recomendada'] = (
-    "Remata " + (df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']).astype(int).astype(str) + " piezas"
+    "Remata " + (df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']).fillna(0).astype(int).astype(str) + " piezas"
 )
 
-# --- Visualizar Resultados con Reglas ---
-st.subheader("Estado de Inventario y Acciones Recomendadas")
-st.dataframe(
-    df_filtrado[['GTIN', 'Producto', 'Categoría', 'Campus', 'Suma Predicciones', 'Stock', 'Estado Inventario', 'Acción Recomendada']],
-    use_container_width=True
-)
+##### ###### Fin de Cálculo basado en las Reglas de Negocio ###### ######
 
-# --- Plot 2 ---
+# Mostrar el DataFrame actualizado en Streamlit
+columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
+                         'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
+                         'Stock', 'Suma Predicciones', 'Estado Inventario', 'Acción Recomendada']
 
-# Crear un DataFrame con productos en condición de VENDE
-productos_a_rematar = df_filtrado[df_filtrado['Estado Inventario'] == "VENDE"]
-
-if not productos_a_rematar.empty:
-    # Crear el gráfico de barras agrupadas
-    fig = px.bar(
-        productos_a_rematar,
-        x='Producto',
-        y='Stock',
-        color='Acción Recomendada',
-        title="Productos en Condición de Remate",
-        labels={'Stock': 'Unidades', 'Producto': 'Producto'},
-        text='Acción Recomendada'
-    )
-
-    # Ajustar diseño
-    fig.update_layout(
-        xaxis_title="Productos",
-        yaxis_title="Unidades",
-        legend_title="Acción Recomendada",
-        height=400,
-        margin=dict(t=50, b=50),
-        font=dict(size=12)
-    )
-
-    # Mostrar el gráfico
-    st.plotly_chart(fig, use_container_width=True)
+if not df_filtrado.empty:
+    st.subheader("Análisis de Inventario basado en Reglas de Negocio")
+    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 else:
-    st.write("No se encontraron productos en condición de remate.")
+    st.write("No se encontraron datos para los filtros seleccionados.")
 
 # Final Parte 4
