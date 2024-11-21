@@ -235,7 +235,7 @@ if not df_filtrado.empty:
 else:
     st.warning("Por favor, selecciona un producto o categoría para visualizar las predicciones.")
 
-# --- Plot 2: Análisis de Liquidación con Métricas Adicionales ---
+# --- Calculo para el Análisis de Liquidación ---
 # Extraer las columnas necesarias del archivo original
 df_adicional = df[['GTIN', 'Piezas', 'Precio Unitario', 'Costo Unitario']].copy()
 
@@ -256,77 +256,61 @@ df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 # Reemplazar valores NaN en columnas relevantes
 df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0.00)
 
-## CALCULO REMATE ##
-# Calcular el promedio mensual basado en predicciones y piezas vendidas (histórico)
+# Calcular Promedio Mensual y Métricas de Liquidación
 df_filtrado['Promedio Mensual'] = (
     df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1) +
     df_filtrado['Piezas_Vendidas'].astype(float).fillna(0)
 ) / 12
 
-# Excedente de Inventario Actual - Excedente = Stock - (Promedio Mensual * 6)
 df_filtrado['Unidades para Rematar'] = (
     df_filtrado['Stock'].astype(float) - (df_filtrado['Promedio Mensual'] * 6)
 ).clip(lower=0)
 
-# Precio de Remate por Unidad
 df_filtrado['Precio de Remate por Unidad'] = (
     (df_filtrado['Precio_Unitario'] - df_filtrado['Costo_Unitario']) * 0.8
 ).clip(lower=0)
 
-# Total a Generar por Remate
 df_filtrado['Total a Generar por Remate'] = (
     df_filtrado['Unidades para Rematar'] * df_filtrado['Precio de Remate por Unidad']
 )
 
-## CALCULO REMATE ##
+# Validar productos para rematar
+productos_a_rematar = df_filtrado[df_filtrado['Unidades para Rematar'] > 0]
 
-# Formatear columnas para visualización
-columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
-                         'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
-                         'Stock', 'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
-                         'Promedio Mensual', 'Unidades para Rematar', 'Precio de Remate por Unidad', 'Total a Generar por Remate']
-
-# Mostrar los datos en Streamlit
-if not df_filtrado.empty:
-    st.subheader("Análisis de Liquidación con Métricas Adicionales")
-    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
-else:
-    st.warning("No se encontraron datos para los filtros seleccionados.")
-
-# --- Gráfico de Análisis de Liquidación ---
+# Mostrar datos de liquidación
 if not productos_a_rematar.empty:
+    st.subheader("Análisis de Liquidación con Métricas Adicionales")
+    columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
+                             'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
+                             'Stock', 'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
+                             'Promedio Mensual', 'Unidades para Rematar', 'Precio de Remate por Unidad', 'Total a Generar por Remate']
+    st.dataframe(productos_a_rematar[columnas_para_mostrar], use_container_width=True)
+
+    # Gráfico de barras agrupadas
     df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock', 'Unidades para Rematar']].copy()
 
-    # Verificar si el DataFrame tiene datos válidos
-    if df_plot.empty:
-        st.warning("No hay datos para mostrar en el gráfico.")
-    else:
-        df_plot['Piezas_Vendidas'] = pd.to_numeric(df_plot['Piezas_Vendidas'], errors='coerce').fillna(0)
-        df_plot['Stock'] = pd.to_numeric(df_plot['Stock'], errors='coerce').fillna(0)
-        df_plot['Unidades para Rematar'] = pd.to_numeric(df_plot['Unidades para Rematar'], errors='coerce').fillna(0)
+    fig = px.bar(
+        df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock', 'Unidades para Rematar']),
+        x='Producto',
+        y='value',
+        color='variable',
+        title="Análisis de Liquidación: Inventario y Predicciones",
+        labels={'value': 'Unidades', 'variable': 'Métricas'},
+        barmode='group',
+        text_auto=True
+    )
 
-        fig = px.bar(
-            df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock', 'Unidades para Rematar']),
-            x='Producto',
-            y='value',
-            color='variable',
-            title="Análisis de Liquidación: Inventario y Predicciones",
-            labels={'value': 'Unidades', 'variable': 'Métricas'},
-            barmode='group',
-            text_auto=True
-        )
+    fig.update_layout(
+        xaxis_title="Productos",
+        yaxis_title="Unidades",
+        legend_title="Métricas",
+        height=400,
+        margin=dict(t=50, b=50),
+        font=dict(size=12)
+    )
 
-        fig.update_layout(
-            xaxis_title="Productos",
-            yaxis_title="Unidades",
-            legend_title="Métricas",
-            height=400,
-            margin=dict(t=50, b=50),
-            font=dict(size=12)
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 else:
     st.warning("No se encontraron productos con exceso de stock para liquidar.")
-    
+
 # Final Parte 4
