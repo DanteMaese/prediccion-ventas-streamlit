@@ -248,42 +248,56 @@ df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0)
 df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
 
-##### ###### Cálculo basado en las Reglas de Negocio ###### ######
+##### Cálculo basado en las Reglas de Negocio ######
 
-# Calcular la suma de las predicciones de los próximos tres meses
 df_filtrado['Suma Predicciones'] = (
-    df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1)
+    df_filtrado['Pred. Sep 2024'] +
+    df_filtrado['Pred. Oct 2024'] +
+    df_filtrado['Pred. Nov 2024']
 )
-
-# Rellenar valores nulos en Suma Predicciones
-df_filtrado['Suma Predicciones'] = df_filtrado['Suma Predicciones'].fillna(0)
 
 # Inicializar columnas de Estado y Acción
 df_filtrado['Estado Inventario'] = None
 df_filtrado['Acción Recomendada'] = None
 
-# Condición para SAFE ZONE
+###
+
+# SAFE ZONE
 df_filtrado.loc[
-    (df_filtrado['Stock'] >= 1.1 * df_filtrado['Suma Predicciones']) &
+    (df_filtrado['Stock'] >= 1.1 * df_filtrado['Suma Predicciones']) & 
     (df_filtrado['Stock'] <= 1.3 * df_filtrado['Suma Predicciones']),
     ['Estado Inventario', 'Acción Recomendada']
 ] = ["SAFE ZONE", "Inventario correcto"]
+]
 
-# Condición para COMPRA
-compra_mask = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
-df_filtrado.loc[compra_mask, 'Estado Inventario'] = "COMPRA"
-df_filtrado.loc[compra_mask, 'Acción Recomendada'] = (
-    "Compra " + (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).fillna(0).astype(int).astype(str) + " piezas"
+# COMPRA
+compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
+
+# Calcular cuántas piezas comprar
+piezas_a_comprar = df_filtrado['Suma Predicciones'].where(
+    df_filtrado['Stock'] == 0,  # Si Stock es 0, tomar directamente la suma de predicciones
+    1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']  # De lo contrario, calcular la diferencia
 )
 
-# Condición para VENDE
-vende_mask = df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones']
-df_filtrado.loc[vende_mask, 'Estado Inventario'] = "VENDE"
-df_filtrado.loc[vende_mask, 'Acción Recomendada'] = (
-    "Remata " + (df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']).fillna(0).astype(int).astype(str) + " piezas"
+# Asignar estado y acción recomendada para la condición de compra
+df_filtrado.loc[compra_condicion, 'Estado Inventario'] = "COMPRA"
+df_filtrado.loc[compra_condicion, 'Acción Recomendada'] = (
+    "Compra " + piezas_a_comprar[compra_condicion].astype(int).astype(str) + " piezas"
 )
 
-##### ###### Fin de Cálculo basado en las Reglas de Negocio ###### ######
+# VENDE
+vende_condicion = df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones']
+
+# Calcular cuántas piezas rematar
+piezas_a_rematar = df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']
+
+# Asignar estado y acción recomendada para la condición de venta
+df_filtrado.loc[vende_condicion, 'Estado Inventario'] = "VENDE"
+df_filtrado.loc[vende_condicion, 'Acción Recomendada'] = (
+    "Remata " + piezas_a_rematar[vende_condicion].astype(int).astype(str) + " piezas"
+)
+
+##### Fin de Cálculo basado en las Reglas de Negocio ######
 
 # Mostrar el DataFrame actualizado en Streamlit
 columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
