@@ -7,8 +7,7 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 RUTA_ARCHIVO = "Ventas.xlsx"
 
-st.title("TECStore")
-st.subtitle("Detalle de ventas futuras y prescripción de inventarios")
+st.title("TECStore - Detalle de ventas futuras y prescripción de inventarios")
 
 @st.cache_data
 def cargar_datos():
