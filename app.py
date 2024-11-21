@@ -39,37 +39,25 @@ def cargar_datos(campus):
 df_TS = cargar_datos(campus_seleccionado)
 
 @st.cache_data
-def procesar_datos(df_TS):
-    monthly_df = df_TS.groupby(['GTIN', 'Campus']).resample('M')['Piezas'].sum().reset_index()
-    full_date_range = pd.date_range(start=monthly_df['Fecha'].min(), end='2024-08-31', freq='M')
-    product_campus_combinations = pd.MultiIndex.from_product(
-        [monthly_df['GTIN'].unique(), monthly_df['Campus'].unique(), full_date_range],
-        names=['GTIN', 'Campus', 'Fecha']
-    )
-    monthly_df = monthly_df.set_index(['GTIN', 'Campus', 'Fecha']).reindex(product_campus_combinations, fill_value=0).reset_index()
-    monthly_df = monthly_df.set_index('Fecha')
-    return monthly_df
-
-monthly_df = procesar_datos(df_TS)
-
-@st.cache_data
 def generar_predicciones(monthly_df):
+    # Verificar si hay series temporales con menos de 24 datos antes de realizar cualquier predicción
+    productos_insuficientes = [
+        (product, campus)
+        for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus'])
+        if len(group) < 24
+    ]
+
+    # Si se encuentran productos con datos insuficientes, detener la ejecución
+    if productos_insuficientes:
+        st.error("No es posible ejecutar la predicción debido a la falta de datos suficientes para algunos productos/campus.")
+        st.stop()
+
+    # Lista para almacenar los resultados de las predicciones
     forecast_list = []
+
+    # Realizar predicciones solo para productos/campus con suficientes datos
     for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus']):
         group = group.resample('M').sum()['Piezas']
-
-# Verificar si hay series temporales con menos de 24 datos antes de realizar cualquier predicción
-productos_insuficientes = [
-    (product, campus)
-    for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus'])
-    if len(group) < 24
-]
-
-# Si se encuentran productos con datos insuficientes, detener la ejecución
-if productos_insuficientes:
-    st.error("No es posible ejecutar la predicción debido a la falta de datos suficientes para algunos productos/campus.")
-    st.stop()
-        
         model = ExponentialSmoothing(group, trend="add", seasonal="add", seasonal_periods=12)
         fit_model = model.fit()
         forecast = fit_model.forecast(steps=3)
@@ -81,9 +69,8 @@ if productos_insuficientes:
         })
         forecast_df['Predicción de Unidades'] = forecast_df['Predicción de Unidades'].clip(lower=0)
         forecast_list.append(forecast_df)
-    return pd.concat(forecast_list).reset_index(drop=True)
 
-forecast_df = generar_predicciones(monthly_df)
+    return pd.concat(forecast_list).reset_index(drop=True)
 
 # Final Parte 1
 
