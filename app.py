@@ -5,43 +5,25 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 # Inicio Parte 1
 
-# Definir la ruta del archivo como variable para facilidad de ajuste
 RUTA_ARCHIVO = "Ventas.xlsx"
 
-# Obtener la lista única de campus desde el archivo de ventas
-df_inicial = pd.read_excel(RUTA_ARCHIVO)
-lista_campus = sorted(df_inicial['Campus'].dropna().unique())  # Excluir valores NaN
-
-# Mostrar resultados en Streamlit
 st.title("Detalle de ventas futuras y prescripción de inventarios")
 
-# Agregar un selectbox para seleccionar el campus
-campus_seleccionado = st.selectbox(
-    "Elige un campus de la lista:",
-     options=["Selecciona un campus"] + lista_campus,  # Agregar un placeholder al inicio de la lista
-     index=0  # Seleccionar el placeholder por defecto
-)
-
-# Validar si el usuario seleccionó un campus válido
-if campus_seleccionado == "Selecciona un campus":
-    st.warning("Por favor, selecciona un campus para continuar.")
-    st.stop()  # Detener la ejecución hasta que el usuario elija un campus válido
-
 @st.cache_data
-def cargar_datos(campus=None):
+def cargar_datos():
     df = pd.read_excel(RUTA_ARCHIVO)
-    df = df[df['Empresa'] != 'Tecmilenio'] # Excluir registros de Tecmilenio    
-    if campus:
-        df = df[df['Campus'] == campus]  # Filtrar solo para el campus seleccionado
-         
-    df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
-    df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
-    df_TS = df_TS.set_index('Fecha')
-    return df, df_TS
+    df = df[df['Empresa'] != 'Tecmilenio']  # Excluir registros de Tecmilenio
+    df['Fecha'] = pd.to_datetime(df['Fecha'])  # Convertir Fecha a datetime
+    return df
+
+# Cargar datos iniciales
+df = cargar_datos()
 
 @st.cache_data
-def procesar_datos(df_TS):
+def procesar_datos(df):
     """Agrupa los datos por mes y crea un DataFrame con todas las combinaciones de fechas, productos y campus."""
+    df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
+    df_TS = df_TS.set_index('Fecha')
     monthly_df = df_TS.groupby(['GTIN', 'Campus']).resample('M')['Piezas'].sum().reset_index()
     full_date_range = pd.date_range(start=monthly_df['Fecha'].min(), end='2024-08-31', freq='M')
     product_campus_combinations = pd.MultiIndex.from_product(
@@ -51,6 +33,25 @@ def procesar_datos(df_TS):
     monthly_df = monthly_df.set_index(['GTIN', 'Campus', 'Fecha']).reindex(product_campus_combinations, fill_value=0).reset_index()
     monthly_df = monthly_df.set_index('Fecha')
     return monthly_df
+
+# Procesar los datos sin filtrar
+monthly_df = procesar_datos(df)
+
+# Agregar un selectbox para seleccionar el campus
+lista_campus = sorted(df['Campus'].dropna().unique())  # Excluir valores NaN
+campus_seleccionado = st.selectbox(
+    "Elige un campus de la lista:",
+    options=["Selecciona un campus"] + lista_campus,  # Agregar un placeholder al inicio de la lista
+    index=0  # Seleccionar el placeholder por defecto
+)
+
+# Validar si el usuario seleccionó un campus válido
+if campus_seleccionado == "Selecciona un campus":
+    st.warning("Por favor, selecciona un campus para continuar.")
+    st.stop()  # Detener la ejecución hasta que el usuario elija un campus válido
+
+# Filtrar los datos según el campus seleccionado
+monthly_df = monthly_df[monthly_df['Campus'] == campus_seleccionado]
 
 @st.cache_data
 def generar_predicciones(monthly_df):
