@@ -5,73 +5,77 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 # Inicio Parte 1
 
-RUTA_ARCHIVO = "Ventas.xlsx"
-
-st.title("Detalle de ventas futuras y prescripción de inventarios")
-
-# Cargar lista de campus
 @st.cache_data
 def cargar_lista_campus():
     df = pd.read_excel(RUTA_ARCHIVO)
-    df = df[df['Empresa'] != 'Tecmilenio']
-    df['Campus'] = df['Campus'].str.strip()  # Limpiar espacios
+    df = df[df['Empresa'] != 'Tecmilenio']  # Excluir registros de Tecmilenio
     return sorted(df['Campus'].dropna().unique())
 
+# Obtener la lista de campus
 lista_campus = cargar_lista_campus()
 
-# Selección de campus
+# Selector de campus
 campus_seleccionado = st.selectbox(
     "Elige un campus de la lista:",
-    options=["Campus"] + lista_campus,
-    index=0
+    options=["Campus"] + lista_campus,  # Placeholder y opciones
+    index=0  # Seleccionar el placeholder por defecto
 )
 
+# Validar si el usuario seleccionó un campus válido
 if campus_seleccionado == "Campus":
-    st.warning("Por favor selecciona un campus válido.")
-    st.stop()
+    st.stop()  # Detener la ejecución hasta que se elija un campus válido
 
-# Cargar datos del campus seleccionado
+# Cargar datos del archivo para el campus seleccionado
 @st.cache_data
 def cargar_datos(campus):
+    """Carga y filtra los datos según el campus seleccionado."""
     df = pd.read_excel(RUTA_ARCHIVO)
-    df = df[df['Empresa'] != 'Tecmilenio']
-    df = df[df['Campus'] == campus]
+    df = df[df['Campus'] == campus]  # Filtrar solo para el campus seleccionado
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
     df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
     df_TS = df_TS.set_index('Fecha')
-    return df_TS
+    return df, df_TS
 
-df_TS = cargar_datos(campus_seleccionado)
+# Cargar los datos filtrados por campus
+df, df_TS = cargar_datos(campus_seleccionado)
 
-# Generar predicciones
+# Procesar datos por mes
+@st.cache_data
+def procesar_datos(df_TS):
+    """Agrupa los datos por mes y crea un DataFrame con todas las combinaciones de fechas, productos y campus."""
+    monthly_df = df_TS.groupby(['GTIN', 'Campus']).resample('M')['Piezas'].sum().reset_index()
+    full_date_range = pd.date_range(start=monthly_df['Fecha'].min(), end='2024-08-31', freq='M')
+    product_campus_combinations = pd.MultiIndex.from_product(
+        [monthly_df['GTIN'].unique(), monthly_df['Campus'].unique(), full_date_range],
+        names=['GTIN', 'Campus', 'Fecha']
+    )
+    monthly_df = monthly_df.set_index(['GTIN', 'Campus', 'Fecha']).reindex(product_campus_combinations, fill_value=0).reset_index()
+    monthly_df = monthly_df.set_index('Fecha')
+    return monthly_df
+
+# Procesar los datos
+monthly_df = procesar_datos(df_TS)
+
+# Generar predicciones usando Exponential Smoothing
 @st.cache_data
 def generar_predicciones(monthly_df):
-    productos_insuficientes = [
-        (product, campus)
-        for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus'])
-        if len(group) < 24
-    ]
-
-    if productos_insuficientes:
-        st.error("No es posible ejecutar la predicción debido a la falta de datos suficientes.")
-        st.stop()
-
+    """Aplica Exponential Smoothing para predecir las ventas de los próximos 3 meses por cada combinación de producto y campus."""
     forecast_list = []
-
     for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus']):
-        group = group.resample('M').sum().fillna(0)  # Asegurar datos mensuales completos
-        model = ExponentialSmoothing(group, trend="add", seasonal="add", seasonal_periods=12)
-        fit_model = model.fit()
-        forecast = fit_model.forecast(steps=3)
-        forecast_df = pd.DataFrame({
-            'GTIN': product,
-            'Campus': campus,
-            'Fecha': forecast.index,
-            'Predicción de Unidades': forecast.values
-        })
-        forecast_df['Predicción de Unidades'] = forecast_df['Predicción de Unidades'].clip(lower=0)
-        forecast_list.append(forecast_df)
-
+        group = group.resample('M').sum()['Piezas']
+        # Solo generar predicciones si hay suficientes datos
+        if len(group) >= 24:
+            model = ExponentialSmoothing(group, trend="add", seasonal="add", seasonal_periods=12)
+            fit_model = model.fit()
+            forecast = fit_model.forecast(steps=3)
+            forecast_df = pd.DataFrame({
+                'GTIN': product,
+                'Campus': campus,
+                'Fecha': forecast.index,
+                'Predicción de Unidades': forecast.values
+            })
+            forecast_df['Predicción de Unidades'] = forecast_df['Predicción de Unidades'].clip(lower=0)
+            forecast_list.append(forecast_df)
     return pd.concat(forecast_list).reset_index(drop=True)
 
 # Final Parte 1
