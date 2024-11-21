@@ -277,15 +277,6 @@ df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0)
 df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
 
-##
-# Contar valores nulos en las columnas 'Stock' y 'Suma Predicciones'
-valores_nulos = df_filtrado[['Stock', 'Suma Predicciones']].isnull().sum()
-
-# Mostrar los resultados en Streamlit
-st.subheader("Conteo de Valores Nulos")
-st.write(valores_nulos)
-##
-
 ##### Cálculo basado en las Reglas de Negocio ######
 
 df_filtrado['Suma Predicciones'] = (
@@ -297,6 +288,15 @@ df_filtrado['Suma Predicciones'] = (
 # Inicializar columnas de Estado y Acción
 df_filtrado['Estado Inventario'] = None
 df_filtrado['Acción Recomendada'] = None
+
+##
+# Contar valores nulos en las columnas 'Stock' y 'Suma Predicciones'
+valores_nulos = df_filtrado[['Stock', 'Suma Predicciones']].isnull().sum()
+
+# Mostrar los resultados en Streamlit
+st.subheader("Conteo de Valores Nulos")
+st.write(valores_nulos)
+##
 
 ###
 
