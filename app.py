@@ -11,11 +11,12 @@ RUTA_ARCHIVO = "Ventas.xlsx"
 # --- Funciones de procesamiento con caché ---
 @st.cache_data
 def cargar_datos():
-    """Carga y limpia los datos de Excel, excluyendo registros de 'Tecmilenio'."""
     df = pd.read_excel(RUTA_ARCHIVO)
-    print("Columnas disponibles en el archivo:", df.columns)  # Para verificar nombres de columnas
     df = df[df['Empresa'] != 'Tecmilenio'] # Excluir registros de Tecmilenio
-    df = df[df['Campus'] == 'Monterrey']  # Filtrar solo para Campus Monterrey
+ # Aplicar filtro dinámico por Campus
+    if campus:
+        df = df[df['Campus'] == campus]  # Filtrar solo para el campus seleccionado
+    
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
     df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
     df_TS = df_TS.set_index('Fecha')
@@ -78,9 +79,8 @@ RUTA_STOCK = "Stock.xlsx"
 # --- Cargar el archivo de stock y realizar el join ---
 @st.cache_data
 def cargar_stock():
-    """Carga los datos de stock desde el archivo BD Stock.xlsx."""
     try:
-        stock_df = pd.read_excel(RUTA_STOCK)  # Usar la ruta definida para el archivo de stock
+        stock_df = pd.read_excel(RUTA_STOCK) 
         stock_df['GTIN'] = stock_df['GTIN'].astype('int64')  # Convertir GTIN a int
         return stock_df
     except FileNotFoundError:
@@ -114,25 +114,35 @@ stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
 
 # Mostrar resultados en Streamlit
-st.title("Predicción Consolidada de Ventas - Campus MTY")
+st.title("Detalle de ventas futuras y prescripción de inventarios")
 
 # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
 forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
 
+# --- Filtro por Campus ---
+st.subheader("Selecciona el Campus")
+campus_opciones = forecast_consolidado['Campus'].unique()
+campus_seleccionado = st.selectbox(
+    "Elige un campus de la lista:",
+    options=campus_opciones,  # Obtener valores únicos de la columna Campus
+    index=list(campus_opciones).index("Monterrey") if "Monterrey" in campus_opciones else 0  # Seleccionar Monterrey por defecto
+)
+
+# Aplicar el filtro de Campus
+df_filtrado = forecast_consolidado[forecast_consolidado['Campus'] == campus_seleccionado].copy()
+
 # Filtros para Producto y Categoría
 productos_seleccionados = st.multiselect(
     "Escribe o selecciona uno o varios productos:",
-    options=sorted(forecast_consolidado['Producto'].unique())  # Ordenar productos alfabéticamente
+    options=sorted(df_filtrado['Producto'].unique())  # Ordenar productos alfabéticamente
 )
 
 categorias_seleccionadas = st.multiselect(
     "Escribe o selecciona una o varias categorías:",
-    options=forecast_consolidado['Categoría'].unique()
+    options=df_filtrado['Categoría'].unique()
 )
 
 # Aplicar los filtros al DataFrame consolidado
-df_filtrado = forecast_consolidado.copy()
-
 if productos_seleccionados:
     df_filtrado = df_filtrado[df_filtrado['Producto'].isin(productos_seleccionados)]
 
