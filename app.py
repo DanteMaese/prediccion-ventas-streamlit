@@ -120,6 +120,13 @@ forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], o
 # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
 forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
 
+##
+if forecast_consolidado['Stock'].isnull().any():
+    raise ValueError("Existen valores nulos en la columna 'Stock' después del merge.")
+if forecast_consolidado[['GTIN', 'Producto', 'Categoría', 'Campus']].isnull().any().any():
+    raise ValueError("Existen valores nulos en las columnas clave después del merge.")
+##
+
 # Filtros para Producto y Categoría
 productos_seleccionados = st.multiselect(
     "Escribe o selecciona uno o varios productos:",
@@ -139,6 +146,12 @@ if productos_seleccionados:
 
 if categorias_seleccionadas:
     df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(categorias_seleccionadas)]
+
+##
+# Asegurar que las columnas sean numéricas
+df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
+df_filtrado['Suma Predicciones'] = pd.to_numeric(df_filtrado['Suma Predicciones'], errors='coerce').fillna(0)
+##
 
 # Seleccionar columnas relevantes
 columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
