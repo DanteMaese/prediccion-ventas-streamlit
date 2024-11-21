@@ -286,32 +286,41 @@ df_filtrado['Total a Generar por Remate'] = (
 # Crear un DataFrame con solo los productos marcados para remate
 productos_a_rematar = df_filtrado[df_filtrado['Unidades para Rematar'] > 0]
 
-# Formatear y mostrar datos
-if not productos_a_rematar.empty:
-    # Gráfico
+# Validar si hay productos para rematar
+if productos_a_rematar.empty:
+    st.warning("No hay productos para rematar, por lo que no se generará el gráfico.")
+else:
+    # Limpiar y validar datos en productos_a_rematar
+    for col in ['Piezas_Vendidas', 'Stock', 'Unidades para Rematar']:
+        productos_a_rematar[col] = pd.to_numeric(productos_a_rematar[col], errors='coerce').fillna(0)
+    
+    # Crear DataFrame para graficar
     df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock', 'Unidades para Rematar']].copy()
 
-    fig = px.bar(
-        df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock', 'Unidades para Rematar']),
-        x='Producto',
-        y='value',
-        color='variable',
-        title="Análisis de Liquidación: Inventario y Predicciones",
-        labels={'value': 'Unidades', 'variable': 'Métricas'},
-        barmode='group',
-        text_auto=True
-    )
+    # Verificar si hay columnas necesarias
+    if not all(col in df_plot.columns for col in ['Producto', 'Piezas_Vendidas', 'Stock', 'Unidades para Rematar']):
+        st.error("Faltan columnas necesarias para generar el gráfico.")
+    else:
+        fig = px.bar(
+            df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock', 'Unidades para Rematar']),
+            x='Producto',
+            y='value',
+            color='variable',
+            title="Análisis de Liquidación: Inventario y Predicciones",
+            labels={'value': 'Unidades', 'variable': 'Métricas'},
+            barmode='group',
+            text_auto=True
+        )
 
-    fig.update_layout(
-        xaxis_title="Productos",
-        yaxis_title="Unidades",
-        legend_title="Métricas",
-        height=400,
-        margin=dict(t=50, b=50),
-        font=dict(size=12)
-    )
+        fig.update_layout(
+            xaxis_title="Productos",
+            yaxis_title="Unidades",
+            legend_title="Métricas",
+            height=400,
+            margin=dict(t=50, b=50),
+            font=dict(size=12)
+        )
 
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.write("No se encontraron productos con exceso de stock para liquidar.")
+        st.plotly_chart(fig, use_container_width=True)
+
 # Final Parte 4
