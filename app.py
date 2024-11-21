@@ -100,6 +100,77 @@ forecast_consolidado = forecast_df.pivot_table(
     aggfunc='sum'                                       # Sumar valores si hay duplicados
 ).reset_index()
 
+# # Renombrar columnas según las fechas mapeadas
+# fechas_mapeo = {
+#     pd.Timestamp('2024-09-30'): 'Pred. Sep 2024',
+#     pd.Timestamp('2024-10-31'): 'Pred. Oct 2024',
+#     pd.Timestamp('2024-11-30'): 'Pred. Nov 2024'
+# }
+# forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
+
+# # Asegurarse de que GTIN en ambos DataFrames esté en el mismo formato
+# forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
+# stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
+
+# ## validación
+# # Realizar el merge para agregar el stock
+# forecast_consolidado = forecast_consolidado.merge(
+#     stock_df[['GTIN', 'Stock']], on='GTIN', how='left'
+# )
+
+# # Rellenar valores nulos en Stock después del merge con 0
+# forecast_consolidado['Stock'] = forecast_consolidado['Stock'].fillna(0)
+
+# # Asegurar que Stock sea numérico
+# forecast_consolidado['Stock'] = pd.to_numeric(forecast_consolidado['Stock'], errors='coerce').fillna(0)
+# ## validación
+
+# # Mostrar resultados en Streamlit
+# # st.title("Predicción Consolidada de Ventas - Campus MTY")
+
+# # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
+# forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
+
+# # Filtros para Producto y Categoría
+# productos_seleccionados = st.multiselect(
+#     "Escribe o selecciona uno o varios productos:",
+#     options=sorted(forecast_consolidado['Producto'].unique())  # Ordenar productos alfabéticamente
+# )
+
+# categorias_seleccionadas = st.multiselect(
+#     "Escribe o selecciona una o varias categorías:",
+#     options=forecast_consolidado['Categoría'].unique()
+# )
+
+# # Aplicar los filtros al DataFrame consolidado
+# df_filtrado = forecast_consolidado.copy()
+
+# if productos_seleccionados:
+#     df_filtrado = df_filtrado[df_filtrado['Producto'].isin(productos_seleccionados)]
+
+# if categorias_seleccionadas:
+#     df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(categorias_seleccionadas)]
+
+# # Seleccionar columnas relevantes
+# columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
+
+# # Formatear y mostrar el DataFrame
+# if not df_filtrado.empty:
+#     st.subheader("Predicción Consolidada para los Filtros Seleccionados")
+    
+#     # Convertir el GTIN a string para evitar formato numérico con comas
+#     df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
+    
+#     # Formatear columnas de predicciones para mostrar dos decimales
+#     columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
+#     for columna in columnas_prediccion:
+#         df_filtrado[columna] = df_filtrado[columna].map("{:.2f}".format)
+    
+#     # Mostrar el DataFrame con formato mejorado
+#     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+# else:
+#     st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
+
 # Renombrar columnas según las fechas mapeadas
 fechas_mapeo = {
     pd.Timestamp('2024-09-30'): 'Pred. Sep 2024',
@@ -108,25 +179,20 @@ fechas_mapeo = {
 }
 forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
 
-# Asegurarse de que GTIN en ambos DataFrames esté en el mismo formato
-forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
-stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
+# Validar tipos de columnas de predicción
+for col in ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']:
+    assert forecast_consolidado[col].dtype == 'float64', f"Columna {col} no es float64"
 
-## validación
 # Realizar el merge para agregar el stock
 forecast_consolidado = forecast_consolidado.merge(
     stock_df[['GTIN', 'Stock']], on='GTIN', how='left'
 )
 
-# Rellenar valores nulos en Stock después del merge con 0
+# Validar valores en Stock después del merge
 forecast_consolidado['Stock'] = forecast_consolidado['Stock'].fillna(0)
-
-# Asegurar que Stock sea numérico
 forecast_consolidado['Stock'] = pd.to_numeric(forecast_consolidado['Stock'], errors='coerce').fillna(0)
-## validación
-
-# Mostrar resultados en Streamlit
-# st.title("Predicción Consolidada de Ventas - Campus MTY")
+if forecast_consolidado['Stock'].isnull().sum() > 0:
+    raise ValueError("Existen valores nulos en la columna 'Stock' después del merge.")
 
 # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
 forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
@@ -154,23 +220,13 @@ if categorias_seleccionadas:
 # Seleccionar columnas relevantes
 columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
 
-# Formatear y mostrar el DataFrame
+# Mostrar DataFrame con formato
 if not df_filtrado.empty:
     st.subheader("Predicción Consolidada para los Filtros Seleccionados")
-    
-    # Convertir el GTIN a string para evitar formato numérico con comas
-    df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
-    
-    # Formatear columnas de predicciones para mostrar dos decimales
-    columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
-    for columna in columnas_prediccion:
-        df_filtrado[columna] = df_filtrado[columna].map("{:.2f}".format)
-    
-    # Mostrar el DataFrame con formato mejorado
-    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+    st.dataframe(df_filtrado[columnas_para_mostrar].style.format(subset=columnas_prediccion, formatter="{:.2f}"))
 else:
     st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
-    
+
 # Final Parte 3
 
 # Inicio Parte 4
