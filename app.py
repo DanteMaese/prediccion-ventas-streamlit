@@ -18,6 +18,7 @@ def cargar_datos():
     df = pd.read_excel(RUTA_ARCHIVO)
     print("Columnas disponibles en el archivo:", df.columns)  # Para verificar nombres de columnas
     df = df[df['Empresa'] != 'Tecmilenio']
+    df = df[df['Campus'] == 'Monterrey']
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
     df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
     df_TS = df_TS.set_index('Fecha')
