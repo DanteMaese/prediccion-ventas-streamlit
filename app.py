@@ -83,6 +83,7 @@ def cargar_stock():
     try:
         stock_df = pd.read_excel(RUTA_STOCK)  # Usar la ruta definida para el archivo de stock
         stock_df['GTIN'] = stock_df['GTIN'].astype('int64')  # Convertir GTIN a int
+        stock_df['Stock'] = stock_df['Stock'].fillna(0)  # Rellenar valores nulos en Stock con 0
         return stock_df
     except FileNotFoundError:
         st.error(f"El archivo '{RUTA_STOCK}' no se encuentra. Verifica que esté en el repositorio.")
