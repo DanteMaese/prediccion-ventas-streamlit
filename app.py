@@ -10,7 +10,7 @@ RUTA_ARCHIVO = "Ventas.xlsx"
 
 # --- Funciones de procesamiento con caché ---
 @st.cache_data
-def cargar_datos():
+def cargar_datos(campus='Monterrey'):
     df = pd.read_excel(RUTA_ARCHIVO)
     df = df[df['Empresa'] != 'Tecmilenio'] # Excluir registros de Tecmilenio
  # Aplicar filtro dinámico por Campus
