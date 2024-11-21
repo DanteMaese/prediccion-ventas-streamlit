@@ -31,7 +31,7 @@ if campus_seleccionado == "Selecciona un campus":
 def cargar_datos(campus=None):
     df = pd.read_excel(RUTA_ARCHIVO)
     df = df[df['Empresa'] != 'Tecmilenio'] # Excluir registros de Tecmilenio    
-     if campus:
+    if campus:
         df = df[df['Campus'] == campus]  # Filtrar solo para el campus seleccionado
          
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
