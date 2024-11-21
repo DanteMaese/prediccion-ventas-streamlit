@@ -254,9 +254,9 @@ df_filtrado['Suma Predicciones'] = (
     df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1)
 )
 
-# Aplicar las reglas de negocio
-df_filtrado['Estado Inventario'] = None  # Inicializar columna para el estado del inventario
-df_filtrado['Acción Recomendada'] = None  # Inicializar columna para la acción recomendada
+# Inicializar las columnas
+df_filtrado['Estado Inventario'] = None
+df_filtrado['Acción Recomendada'] = None
 
 # Condición para SAFE ZONE
 df_filtrado.loc[
@@ -266,31 +266,17 @@ df_filtrado.loc[
 ] = ["SAFE ZONE", "Inventario correcto"]
 
 # Condición para COMPRA
-df_filtrado.loc[
-    df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones'],
-    ['Estado Inventario', 'Acción Recomendada']
-] = [
-    "COMPRA",
-    df_filtrado['Suma Predicciones'] - df_filtrado['Stock']  # Calcular las piezas necesarias para compra
-]
+compra_mask = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
+df_filtrado.loc[compra_mask, 'Estado Inventario'] = "COMPRA"
+df_filtrado.loc[compra_mask, 'Acción Recomendada'] = (
+    "Compra " + (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).astype(int).astype(str) + " piezas"
+)
 
 # Condición para VENDE
-df_filtrado.loc[
-    df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones'],
-    ['Estado Inventario', 'Acción Recomendada']
-] = [
-    "VENDE",
-    df_filtrado['Stock'] - (1.3 * df_filtrado['Suma Predicciones'])  # Calcular las piezas para rematar
-]
-
-# Formatear la columna "Acción Recomendada" con mensajes personalizados
-df_filtrado['Acción Recomendada'] = df_filtrado.apply(
-    lambda row: (
-        f"Compra {int(row['Acción Recomendada'])} piezas" if row['Estado Inventario'] == "COMPRA" else
-        f"Remata {int(row['Acción Recomendada'])} piezas" if row['Estado Inventario'] == "VENDE" else
-        row['Acción Recomendada']
-    ),
-    axis=1
+vende_mask = df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones']
+df_filtrado.loc[vende_mask, 'Estado Inventario'] = "VENDE"
+df_filtrado.loc[vende_mask, 'Acción Recomendada'] = (
+    "Remata " + (df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']).astype(int).astype(str) + " piezas"
 )
 
 ##### ###### Fin de Cálculo basado en las Reglas de Negocio ###### ######
