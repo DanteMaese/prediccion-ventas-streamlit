@@ -10,11 +10,12 @@ RUTA_ARCHIVO = "Ventas.xlsx"
 
 # --- Funciones de procesamiento con caché ---
 @st.cache_data
-def cargar_datos():
+def cargar_datos_ventas():
     """Carga y limpia los datos de Excel, excluyendo registros de 'Tecmilenio'."""
     df = pd.read_excel(RUTA_ARCHIVO)
     print("Columnas disponibles en el archivo:", df.columns)  # Para verificar nombres de columnas
-    df = df[df['Empresa'] != 'Tecmilenio']
+    df = df[df['Empresa'] != 'Tecmilenio'] # Excluir registros de Tecmilenio
+    df = df[df['Campus'] == 'Monterrey']  # Filtrar solo para Campus Monterrey
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
     df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
     df_TS = df_TS.set_index('Fecha')
@@ -53,7 +54,7 @@ def generar_predicciones(monthly_df):
     return pd.concat(forecast_list).reset_index(drop=True)
 
 # Final Parte 1
-########################################################################################################################################################################################
+
 # Inicio Parte 2
 
 # --- Cargar y procesar los datos usando las funciones cacheadas ---
@@ -68,11 +69,11 @@ info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
 forecast_df = forecast_df.merge(info_producto, on='GTIN', how='left')
 
 # Final Parte 2
-########################################################################################################################################################################################
+
 # Inicio Parte 3
 
 # Definir la ruta del archivo BD Stock
-RUTA_STOCK = "BD Stock.xlsx"
+RUTA_STOCK = "Stock.xlsx"
 
 # --- Cargar el archivo de stock y realizar el join ---
 @st.cache_data
@@ -159,7 +160,7 @@ else:
     st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
     
 # Final Parte 3
-########################################################################################################################################################################################
+
 # Inicio Parte 4
 
 # -- Plot 1
@@ -292,7 +293,6 @@ if not df_filtrado.empty:
 else:
     st.write("No se encontraron datos para los filtros seleccionados.")
 
-############################################################################################
 
 import plotly.express as px
 
