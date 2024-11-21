@@ -90,8 +90,11 @@ RUTA_STOCK = "Stock.xlsx"
 info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
 
 # Validar que GTIN existe antes del merge
-if 'GTIN' not in forecast_consolidado.columns or 'GTIN' not in info_producto.columns:
-    st.error("La columna 'GTIN' no está presente en forecast_consolidado o info_producto.")
+if 'GTIN' not in forecast_consolidado.columns:
+    st.error("La columna 'GTIN' no está presente en forecast_consolidado.")
+    st.stop()
+if 'GTIN' not in info_producto.columns:
+    st.error("La columna 'GTIN' no está presente en info_producto.")
     st.stop()
 
 # Realizar el join para agregar Producto y Categoría
@@ -102,29 +105,55 @@ forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("Desc
 forecast_consolidado['Categoría'] = forecast_consolidado['Categoría'].fillna("Sin Categoría")
 
 # --- Cargar el archivo de stock ---
+@st.cache_data
+def cargar_stock():
+    """Carga y valida los datos del archivo BD Stock.xlsx."""
+    try:
+        stock_df = pd.read_excel(RUTA_STOCK)
+        
+        # Validar columnas necesarias
+        required_columns = ['GTIN', 'Stock']
+        if not all(col in stock_df.columns for col in required_columns):
+            st.error(f"El archivo '{RUTA_STOCK}' no contiene las columnas requeridas: {required_columns}")
+            return pd.DataFrame()
+
+        # Formatear columnas clave
+        stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
+        stock_df['Stock'] = pd.to_numeric(stock_df['Stock'], errors='coerce').fillna(0)
+
+        return stock_df
+    except FileNotFoundError:
+        st.error(f"El archivo '{RUTA_STOCK}' no se encuentra. Verifica la ruta.")
+        return pd.DataFrame()
+    except Exception as e:
+        st.error(f"Error inesperado al cargar el archivo '{RUTA_STOCK}': {e}")
+        return pd.DataFrame()
+
+# Cargar los datos de stock
 stock_df = cargar_stock()
 
-# Validar que stock_df contiene las columnas necesarias
-if not all(col in stock_df.columns for col in ['GTIN', 'Stock']):
-    st.error("El archivo de stock no contiene las columnas necesarias ('GTIN', 'Stock').")
+# Validar que stock_df contiene datos y columnas necesarias
+if stock_df.empty:
+    st.error("El archivo de stock no contiene datos válidos. Verifica el contenido.")
+    st.stop()
+
+# Validar duplicados en stock_df
+if stock_df.duplicated(subset='GTIN').any():
+    st.error("El archivo de stock contiene duplicados en la columna 'GTIN'.")
     st.stop()
 
 # Asegurarse de que GTIN en ambos DataFrames esté en el mismo formato
 forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
-stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
-
-# Validar duplicados en stock_df
-if stock_df.duplicated(subset='GTIN').any():
-    st.error("El archivo de stock contiene duplicados en 'GTIN'.")
-    st.stop()
 
 # Realizar el merge para agregar el stock
 forecast_consolidado = forecast_consolidado.merge(
-    stock_df[['GTIN', 'Stock']], on='GTIN', how='left'
+    stock_df[['GTIN', 'Stock']],
+    on='GTIN',
+    how='left'
 )
 
 # Rellenar valores nulos en Stock
-forecast_consolidado['Stock'] = pd.to_numeric(forecast_consolidado['Stock'], errors='coerce').fillna(0)
+forecast_consolidado['Stock'] = forecast_consolidado['Stock'].fillna(0)
 
 # Filtros en Streamlit
 if 'Producto' in forecast_consolidado.columns and 'Categoría' in forecast_consolidado.columns:
@@ -156,11 +185,14 @@ columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 
 if not df_filtrado.empty:
     st.subheader("Predicción Consolidada para los Filtros Seleccionados")
     df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
-    df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']] = \
-        df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].applymap("{:.2f}".format)
+    columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
+    df_filtrado[columnas_prediccion] = df_filtrado[columnas_prediccion].applymap("{:.2f}".format)
     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 else:
     st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
+
+# Final Parte 3
+
 
 # # Extraer las columnas únicas de GTIN, Producto y Categoría para el join
 # info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
