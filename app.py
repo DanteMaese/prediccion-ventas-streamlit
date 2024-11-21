@@ -269,8 +269,7 @@ df_filtrado['Suma Predicciones'] = (
 )
 
 # Validar y asegurar que 'Suma Predicciones' no tenga valores no numéricos
-# Esto asegura que la conversión a float no falle
-df_filtrado['Suma Predicciones'] = pd.to_numeric(df_filtrado['Suma Predicciones']
+df_filtrado['Suma Predicciones'] = pd.to_numeric(df_filtrado['Suma Predicciones'])
 
 # Inicializar columnas de Estado y Acción
 df_filtrado['Estado Inventario'] = None
