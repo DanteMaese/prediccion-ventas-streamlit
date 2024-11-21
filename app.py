@@ -268,26 +268,16 @@ df_filtrado['Suma Predicciones'] = (
     df_filtrado['Pred. Nov 2024']
 )
 
+# Convertir 'Suma Predicciones' a tipo float
+df_filtrado['Suma Predicciones'] = pd.to_numeric(df_filtrado['Suma Predicciones'], errors='coerce').fillna(0)
+
+# Validar nuevamente los tipos de datos
+st.subheader("Tipos de Datos Después de la Conversión")
+st.write(df_filtrado[['Stock', 'Suma Predicciones']].dtypes)
+
 # Inicializar columnas de Estado y Acción
 df_filtrado['Estado Inventario'] = None
 df_filtrado['Acción Recomendada'] = None
-
-## Validación: Contar y mostrar valores nulos ##
-# Contar valores nulos en las columnas 'Stock' y 'Suma Predicciones'
-valores_nulos = df_filtrado[['Stock', 'Suma Predicciones']].isnull().sum()
-
-# Mostrar los resultados en Streamlit
-st.subheader("Conteo de Valores Nulos")
-st.write(valores_nulos)
-
-# Validar tipos de datos de las columnas 'Stock' y 'Suma Predicciones'
-st.subheader("Tipos de Datos")
-st.write(df_filtrado[['Stock', 'Suma Predicciones']].dtypes)
-
-# Mostrar un resumen estadístico de las columnas relevantes
-st.subheader("Resumen Estadístico")
-st.write(df_filtrado[['Stock', 'Suma Predicciones']].describe())
-## Fin de Validación ##
 
 # SAFE ZONE
 df_filtrado.loc[
