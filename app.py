@@ -76,8 +76,6 @@ def generar_predicciones(monthly_df):
 # Inicio Parte 2
 
 # --- Cargar y procesar los datos usando las funciones cacheadas ---
-df, df_TS = cargar_datos(campus_seleccionado)  # Pasar el campus seleccionado
-monthly_df = procesar_datos(df_TS)
 forecast_df = generar_predicciones(monthly_df)
 
 # Extraer las columnas únicas de GTIN, Producto y Categoría para el join
