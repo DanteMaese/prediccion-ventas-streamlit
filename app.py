@@ -11,8 +11,19 @@ RUTA_ARCHIVO = "Ventas.xlsx"
 def cargar_datos_ventas():
     """Carga y limpia los datos de Excel, excluyendo registros de 'Tecmilenio'."""
     df = pd.read_excel(RUTA_ARCHIVO)
-    print("Columnas disponibles en el archivo:", df.columns)  # Para verificar nombres de columnas
-    df = df[df['Empresa'] != 'Tecmilenio']
+    if df.empty:
+        st.error("El archivo no contiene datos.")
+        st.stop()
+    
+    df = df[df['Empresa'] != 'Tecmilenio']  # Excluir registros de 'Tecmilenio'
+    
+    # Validar columnas requeridas
+    columnas_requeridas = ["Fecha", "GTIN", "Piezas", "Campus"]
+    if not all(col in df.columns for col in columnas_requeridas):
+        st.error(f"El archivo debe contener las columnas: {columnas_requeridas}")
+        st.stop()
+    
+    # Procesar las columnas necesarias
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
     df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
     df_TS = df_TS.set_index('Fecha')
@@ -22,6 +33,8 @@ def cargar_datos_ventas():
 def procesar_datos(df_TS):
     """Agrupa los datos por mes y crea un DataFrame con todas las combinaciones de fechas, productos y campus."""
     monthly_df = df_TS.groupby(['GTIN', 'Campus']).resample('M')['Piezas'].sum().reset_index()
+    
+    # Crear rango completo de fechas para asegurar consistencia
     full_date_range = pd.date_range(start=monthly_df['Fecha'].min(), end='2024-08-31', freq='M')
     product_campus_combinations = pd.MultiIndex.from_product(
         [monthly_df['GTIN'].unique(), monthly_df['Campus'].unique(), full_date_range],
@@ -40,17 +53,19 @@ lista_campus = sorted(df['Campus'].dropna().unique())
 # Mostrar selector de campus
 campus_seleccionado = st.selectbox(
     "Selecciona un campus para generar la predicción:",
-    options=["Selecciona un campus"] + lista_campus,
+    options=["Campus"] + lista_campus,
     index=0
 )
 
 # Validar selección de campus
-if campus_seleccionado == "Selecciona un campus":
-    st.warning("Por favor, selecciona un campus para continuar.")
+if campus_seleccionado == "Campus":
     st.stop()
 
 # Filtrar datos según el campus seleccionado
 df_TS = df_TS[df_TS['Campus'] == campus_seleccionado]
+if df_TS.empty:
+    st.error("No se encontraron datos para el campus seleccionado.")
+    st.stop()
 
 @st.cache_data
 def generar_predicciones(monthly_df):
