@@ -7,43 +7,18 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 RUTA_ARCHIVO = "Ventas.xlsx"
 
-st.title("Detalle de ventas futuras y prescripción de inventarios")
-
 @st.cache_data
-def cargar_lista_campus():
+def cargar_datos_ventas():
+    """Carga y limpia los datos de Excel, excluyendo registros de 'Tecmilenio'."""
     df = pd.read_excel(RUTA_ARCHIVO)
-    df = df[df['Empresa'] != 'Tecmilenio']  # Excluir registros de Tecmilenio
-    return sorted(df['Campus'].dropna().unique())
-
-# Obtener la lista de campus
-lista_campus = cargar_lista_campus()
-
-# Selector de campus
-campus_seleccionado = st.selectbox(
-    "Elige un campus de la lista:",
-    options=["Campus"] + lista_campus,  # Placeholder y opciones
-    index=0  # Seleccionar el placeholder por defecto
-)
-
-# Validar si el usuario seleccionó un campus válido
-if campus_seleccionado == "Campus":
-    st.stop()  # Detener la ejecución hasta que se elija un campus válido
-
-# Cargar datos del archivo para el campus seleccionado
-@st.cache_data
-def cargar_datos(campus):
-    """Carga y filtra los datos según el campus seleccionado."""
-    df = pd.read_excel(RUTA_ARCHIVO)
-    df = df[df['Campus'] == campus]  # Filtrar solo para el campus seleccionado
+    print("Columnas disponibles en el archivo:", df.columns)  # Para verificar nombres de columnas
+    df = df[df['Empresa'] != 'Tecmilenio']
+    df = df[df['Campus'] == 'Monterrey']  # Filtrar solo para Campus Monterrey
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
     df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
     df_TS = df_TS.set_index('Fecha')
     return df, df_TS
 
-# Cargar los datos filtrados por campus
-df, df_TS = cargar_datos(campus_seleccionado)
-
-# Procesar datos por mes
 @st.cache_data
 def procesar_datos(df_TS):
     """Agrupa los datos por mes y crea un DataFrame con todas las combinaciones de fechas, productos y campus."""
@@ -57,29 +32,23 @@ def procesar_datos(df_TS):
     monthly_df = monthly_df.set_index('Fecha')
     return monthly_df
 
-# Procesar los datos
-monthly_df = procesar_datos(df_TS)
-
-# Generar predicciones usando Exponential Smoothing
 @st.cache_data
 def generar_predicciones(monthly_df):
     """Aplica Exponential Smoothing para predecir las ventas de los próximos 3 meses por cada combinación de producto y campus."""
     forecast_list = []
     for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus']):
         group = group.resample('M').sum()['Piezas']
-        # Solo generar predicciones si hay suficientes datos
-        if len(group) >= 24:
-            model = ExponentialSmoothing(group, trend="add", seasonal="add", seasonal_periods=12)
-            fit_model = model.fit()
-            forecast = fit_model.forecast(steps=3)
-            forecast_df = pd.DataFrame({
-                'GTIN': product,
-                'Campus': campus,
-                'Fecha': forecast.index,
-                'Predicción de Unidades': forecast.values
-            })
-            forecast_df['Predicción de Unidades'] = forecast_df['Predicción de Unidades'].clip(lower=0)
-            forecast_list.append(forecast_df)
+        model = ExponentialSmoothing(group, trend="add", seasonal="add", seasonal_periods=12)
+        fit_model = model.fit()
+        forecast = fit_model.forecast(steps=3)
+        forecast_df = pd.DataFrame({
+            'GTIN': product,
+            'Campus': campus,
+            'Fecha': forecast.index,
+            'Predicción de Unidades': forecast.values
+        })
+        forecast_df['Predicción de Unidades'] = forecast_df['Predicción de Unidades'].clip(lower=0)
+        forecast_list.append(forecast_df)
     return pd.concat(forecast_list).reset_index(drop=True)
 
 # Final Parte 1
