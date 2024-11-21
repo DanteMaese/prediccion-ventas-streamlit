@@ -112,36 +112,24 @@ forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
 forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
 stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 
-##
+## validación
 # Realizar el merge para agregar el stock
 forecast_consolidado = forecast_consolidado.merge(
     stock_df[['GTIN', 'Stock']], on='GTIN', how='left'
 )
-
-# Verificar GTINs sin coincidencia
-gtin_no_match = forecast_consolidado[forecast_consolidado['Stock'].isnull()]
-if not gtin_no_match.empty:
-    st.write("GTINs sin coincidencia en stock_df (asignando Stock = 0):", gtin_no_match[['GTIN', 'Producto']])
 
 # Rellenar valores nulos en Stock después del merge con 0
 forecast_consolidado['Stock'] = forecast_consolidado['Stock'].fillna(0)
 
 # Asegurar que Stock sea numérico
 forecast_consolidado['Stock'] = pd.to_numeric(forecast_consolidado['Stock'], errors='coerce').fillna(0)
-##
+## validación
 
 # Mostrar resultados en Streamlit
 # st.title("Predicción Consolidada de Ventas - Campus MTY")
 
 # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
 forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
-
-##
-if forecast_consolidado['Stock'].isnull().any():
-    raise ValueError("Existen valores nulos en la columna 'Stock' después del merge.")
-if forecast_consolidado[['GTIN', 'Producto', 'Categoría', 'Campus']].isnull().any().any():
-    raise ValueError("Existen valores nulos en las columnas clave después del merge.")
-##
 
 # Filtros para Producto y Categoría
 productos_seleccionados = st.multiselect(
@@ -162,12 +150,6 @@ if productos_seleccionados:
 
 if categorias_seleccionadas:
     df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(categorias_seleccionadas)]
-
-# ##
-# # Asegurar que las columnas sean numéricas
-# df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
-# df_filtrado['Suma Predicciones'] = pd.to_numeric(df_filtrado['Suma Predicciones'], errors='coerce').fillna(0)
-# ##
 
 # Seleccionar columnas relevantes
 columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
@@ -279,6 +261,7 @@ df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fill
 
 ##### Cálculo basado en las Reglas de Negocio ######
 
+# Calcular la suma de las predicciones de los próximos tres meses
 df_filtrado['Suma Predicciones'] = (
     df_filtrado['Pred. Sep 2024'] +
     df_filtrado['Pred. Oct 2024'] +
@@ -289,16 +272,22 @@ df_filtrado['Suma Predicciones'] = (
 df_filtrado['Estado Inventario'] = None
 df_filtrado['Acción Recomendada'] = None
 
-##
+## Validación: Contar y mostrar valores nulos ##
 # Contar valores nulos en las columnas 'Stock' y 'Suma Predicciones'
 valores_nulos = df_filtrado[['Stock', 'Suma Predicciones']].isnull().sum()
 
 # Mostrar los resultados en Streamlit
 st.subheader("Conteo de Valores Nulos")
 st.write(valores_nulos)
-##
 
-###
+# Validar tipos de datos de las columnas 'Stock' y 'Suma Predicciones'
+st.subheader("Tipos de Datos")
+st.write(df_filtrado[['Stock', 'Suma Predicciones']].dtypes)
+
+# Mostrar un resumen estadístico de las columnas relevantes
+st.subheader("Resumen Estadístico")
+st.write(df_filtrado[['Stock', 'Suma Predicciones']].describe())
+## Fin de Validación ##
 
 # SAFE ZONE
 df_filtrado.loc[
