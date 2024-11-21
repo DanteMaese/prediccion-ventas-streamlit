@@ -63,116 +63,79 @@ df, df_TS = cargar_datos()
 monthly_df = procesar_datos(df_TS)
 forecast_df = generar_predicciones(monthly_df)
 
-# Extraer las columnas únicas de GTIN, Producto y Categoría para el join
-info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
+# Consolidar las predicciones en columnas por fecha
+forecast_consolidado = forecast_df.pivot_table(
+    index=['GTIN', 'Campus'],             # Indexamos por GTIN y Campus
+    columns='Fecha',                      # Las fechas se convierten en columnas
+    values='Predicción de Unidades',      # Usar las predicciones como valores
+    aggfunc='sum'                         # Sumar valores si hay duplicados
+).reset_index()
 
-# Realizar el join para agregar Producto y Categoría a forecast_df
-forecast_df = forecast_df.merge(info_producto, on='GTIN', how='left')
+# Renombrar columnas según las fechas mapeadas
+fechas_mapeo = {
+    pd.Timestamp('2024-09-30'): 'Pred. Sep 2024',
+    pd.Timestamp('2024-10-31'): 'Pred. Oct 2024',
+    pd.Timestamp('2024-11-30'): 'Pred. Nov 2024'
+}
+forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
 
 # Final Parte 2
 
 # Inicio Parte 3
 
-# Definir la ruta del archivo BD Stock
-RUTA_STOCK = "Stock.xlsx"
+# Extraer las columnas únicas de GTIN, Producto y Categoría para el join
+info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
 
-# --- Cargar el archivo de stock y realizar el join ---
-@st.cache_data
-def cargar_stock():
-    """Carga los datos de stock desde el archivo BD Stock.xlsx."""
-    try:
-        stock_df = pd.read_excel(RUTA_STOCK)  # Usar la ruta definida para el archivo de stock
-        stock_df['GTIN'] = stock_df['GTIN'].astype('int64')  # Convertir GTIN a int
-        # stock_df['Stock'] = stock_df['Stock'].fillna(0)  # Rellenar valores nulos en Stock con 0
-        return stock_df
-    except FileNotFoundError:
-        st.error(f"El archivo '{RUTA_STOCK}' no se encuentra. Verifica que esté en el repositorio.")
-        return pd.DataFrame()
+# Validar que GTIN existe antes del merge
+if 'GTIN' not in forecast_consolidado.columns or 'GTIN' not in info_producto.columns:
+    st.error("La columna 'GTIN' no está presente en forecast_consolidado o info_producto.")
+    st.stop()
 
-# Cargar los datos de stock
+# Realizar el join para agregar Producto y Categoría
+forecast_consolidado = forecast_consolidado.merge(info_producto, on='GTIN', how='left')
+
+# Rellenar valores nulos después del merge
+forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("Desconocido")
+forecast_consolidado['Categoría'] = forecast_consolidado['Categoría'].fillna("Sin Categoría")
+
+# --- Cargar el archivo de stock ---
 stock_df = cargar_stock()
 
-# # Consolidar las predicciones en columnas por fecha
-# forecast_consolidado = forecast_df.pivot_table(
-#     index=['GTIN', 'Producto', 'Categoría', 'Campus'],  # Incluir Producto y Categoría en el índice
-#     columns='Fecha',                                    # Las fechas se convierten en columnas
-#     values='Predicción de Unidades',                    # Usar las predicciones como valores
-#     aggfunc='sum'                                       # Sumar valores si hay duplicados
-# ).reset_index()
+# Validar que stock_df contiene las columnas necesarias
+if not all(col in stock_df.columns for col in ['GTIN', 'Stock']):
+    st.error("El archivo de stock no contiene las columnas necesarias ('GTIN', 'Stock').")
+    st.stop()
 
-# # Renombrar columnas según las fechas mapeadas
-# fechas_mapeo = {
-#     pd.Timestamp('2024-09-30'): 'Pred. Sep 2024',
-#     pd.Timestamp('2024-10-31'): 'Pred. Oct 2024',
-#     pd.Timestamp('2024-11-30'): 'Pred. Nov 2024'
-# }
-# forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
-
-# # Asegurarse de que GTIN en ambos DataFrames esté en el mismo formato
-# forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
-# stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
-
-# # Realizar el merge para agregar el stock
-# forecast_consolidado = forecast_consolidado.merge(
-#     stock_df[['GTIN', 'Stock']], on='GTIN', how='left'
-# )
-
-def transformar_predicciones(forecast_df):
-    # Asegurar que las fechas están en formato datetime
-    forecast_df['Fecha'] = pd.to_datetime(forecast_df['Fecha'], errors='coerce')
-
-    # Verificar duplicados y eliminarlos
-    forecast_df = forecast_df.drop_duplicates(subset=['GTIN', 'Campus', 'Fecha'])
-
-    # Reorganizar las filas con fechas como columnas usando un pivot manual
-    # Agrupamos para garantizar que cada combinación sea única antes de transformar
-    predicciones_ancho = forecast_df.set_index(['GTIN', 'Campus', 'Fecha'])['Predicción de Unidades'].unstack()
-
-    # Renombrar columnas para mayor claridad (Ejemplo: '2024-09-30' -> 'Pred. Sep 2024')
-    predicciones_ancho.columns = predicciones_ancho.columns.strftime('Pred. %b %Y')
-
-    # Completar valores nulos con ceros
-    predicciones_ancho = predicciones_ancho.fillna(0)
-
-    # Resetear el índice para devolverlo a un formato tabular
-    return predicciones_ancho.reset_index()
-
-# Aplicar la transformación
-forecast_consolidado = transformar_predicciones(forecast_df)
-
-# Asegurarse de que GTIN tiene el mismo formato en ambos DataFrames
+# Asegurarse de que GTIN en ambos DataFrames esté en el mismo formato
 forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
 stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 
-# Realizar el merge
+# Validar duplicados en stock_df
+if stock_df.duplicated(subset='GTIN').any():
+    st.error("El archivo de stock contiene duplicados en 'GTIN'.")
+    st.stop()
+
+# Realizar el merge para agregar el stock
 forecast_consolidado = forecast_consolidado.merge(
-    stock_df[['GTIN', 'Stock']],
-    on='GTIN',
-    how='left'
+    stock_df[['GTIN', 'Stock']], on='GTIN', how='left'
 )
 
-# Rellenar valores nulos en Stock después del merge con 0
-forecast_consolidado['Stock'] = forecast_consolidado['Stock'].fillna(0)
-
-# Asegurar que Stock sea numérico
+# Rellenar valores nulos en Stock
 forecast_consolidado['Stock'] = pd.to_numeric(forecast_consolidado['Stock'], errors='coerce').fillna(0)
 
-# Mostrar resultados en Streamlit
-# st.title("Predicción Consolidada de Ventas - Campus MTY")
-
-# Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
-forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
-
-# Filtros para Producto y Categoría
-productos_seleccionados = st.multiselect(
-    "Escribe o selecciona uno o varios productos:",
-    options=sorted(forecast_consolidado['Producto'].unique())  # Ordenar productos alfabéticamente
-)
-
-categorias_seleccionadas = st.multiselect(
-    "Escribe o selecciona una o varias categorías:",
-    options=forecast_consolidado['Categoría'].unique()
-)
+# Filtros en Streamlit
+if 'Producto' in forecast_consolidado.columns and 'Categoría' in forecast_consolidado.columns:
+    productos_seleccionados = st.multiselect(
+        "Escribe o selecciona uno o varios productos:",
+        options=sorted(forecast_consolidado['Producto'].unique())
+    )
+    categorias_seleccionadas = st.multiselect(
+        "Escribe o selecciona una o varias categorías:",
+        options=forecast_consolidado['Categoría'].unique()
+    )
+else:
+    productos_seleccionados = []
+    categorias_seleccionadas = []
 
 # Aplicar los filtros al DataFrame consolidado
 df_filtrado = forecast_consolidado.copy()
@@ -189,184 +152,269 @@ columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 
 # Formatear y mostrar el DataFrame
 if not df_filtrado.empty:
     st.subheader("Predicción Consolidada para los Filtros Seleccionados")
-    
-    # Convertir el GTIN a string para evitar formato numérico con comas
     df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
-    
-    # Formatear columnas de predicciones para mostrar dos decimales
-    columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
-    for columna in columnas_prediccion:
-        df_filtrado[columna] = df_filtrado[columna].map("{:.2f}".format)
-    
-    # Mostrar el DataFrame con formato mejorado
+    df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']] = \
+        df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].applymap("{:.2f}".format)
     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 else:
     st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
 
+# # Extraer las columnas únicas de GTIN, Producto y Categoría para el join
+# info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
+
+# # Realizar el join para agregar Producto y Categoría a forecast_consolidado
+# forecast_consolidado = forecast_consolidado.merge(info_producto, on='GTIN', how='left')
+
+# # Rellenar valores nulos después del merge con valores por defecto
+# forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("Desconocido")
+# forecast_consolidado['Categoría'] = forecast_consolidado['Categoría'].fillna("Sin Categoría")
+
+# # Definir la ruta del archivo BD Stock
+# RUTA_STOCK = "Stock.xlsx"
+
+# # --- Cargar el archivo de stock y realizar el join ---
+# @st.cache_data
+# def cargar_stock():
+#     """Carga los datos de stock desde el archivo BD Stock.xlsx."""
+#     try:
+#         stock_df = pd.read_excel(RUTA_STOCK)  # Usar la ruta definida para el archivo de stock
+#         stock_df['GTIN'] = stock_df['GTIN'].astype('int64')  # Convertir GTIN a int
+#         # stock_df['Stock'] = stock_df['Stock'].fillna(0)  # Rellenar valores nulos en Stock con 0
+#         return stock_df
+#     except FileNotFoundError:
+#         st.error(f"El archivo '{RUTA_STOCK}' no se encuentra. Verifica que esté en el repositorio.")
+#         return pd.DataFrame()
+
+# # Cargar los datos de stock
+# stock_df = cargar_stock()
+
+# stock_df['Stock'] = stock_df['Stock'].fillna(0)
+
+# # Asegurarse de que GTIN en ambos DataFrames esté en el mismo formato
+# forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
+# stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
+
+# # Realizar el merge para agregar el stock
+# forecast_consolidado = forecast_consolidado.merge(
+#     stock_df[['GTIN', 'Stock']], on='GTIN', how='left'
+# )
+
+# # Rellenar valores nulos en Stock después del merge con 0
+# forecast_consolidado['Stock'] = forecast_consolidado['Stock'].fillna(0)
+
+# # Asegurar que Stock sea numérico
+# forecast_consolidado['Stock'] = pd.to_numeric(forecast_consolidado['Stock'], errors='coerce').fillna(0)
+
+# # Mostrar resultados en Streamlit
+# # st.title("Predicción Consolidada de Ventas - Campus MTY")
+
+# # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
+# forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
+
+# # Filtros para Producto y Categoría
+# productos_seleccionados = st.multiselect(
+#     "Escribe o selecciona uno o varios productos:",
+#     options=sorted(forecast_consolidado['Producto'].unique())  # Ordenar productos alfabéticamente
+# )
+
+# categorias_seleccionadas = st.multiselect(
+#     "Escribe o selecciona una o varias categorías:",
+#     options=forecast_consolidado['Categoría'].unique()
+# )
+
+# # Aplicar los filtros al DataFrame consolidado
+# df_filtrado = forecast_consolidado.copy()
+
+# if productos_seleccionados:
+#     df_filtrado = df_filtrado[df_filtrado['Producto'].isin(productos_seleccionados)]
+
+# if categorias_seleccionadas:
+#     df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(categorias_seleccionadas)]
+
+# # Seleccionar columnas relevantes
+# columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
+
+# # Formatear y mostrar el DataFrame
+# if not df_filtrado.empty:
+#     st.subheader("Predicción Consolidada para los Filtros Seleccionados")
+    
+#     # Convertir el GTIN a string para evitar formato numérico con comas
+#     df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
+    
+#     # Formatear columnas de predicciones para mostrar dos decimales
+#     columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
+#     for columna in columnas_prediccion:
+#         df_filtrado[columna] = df_filtrado[columna].map("{:.2f}".format)
+    
+#     # Mostrar el DataFrame con formato mejorado
+#     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+# else:
+#     st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
+
 # Final Parte 3
 
-# Inicio Parte 4
+# # Inicio Parte 4
 
-# -- Plot 1
+# # -- Plot 1
 
-import plotly.graph_objects as go
+# import plotly.graph_objects as go
 
-if not df_filtrado.empty:
-    # Calcular totales
-    total_predicciones = df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum().sum()
-    total_stock = df_filtrado['Stock'].astype(float).sum()
+# if not df_filtrado.empty:
+#     # Calcular totales
+#     total_predicciones = df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum().sum()
+#     total_stock = df_filtrado['Stock'].astype(float).sum()
 
-    # Crear el gráfico de barras
-    fig = go.Figure()
+#     # Crear el gráfico de barras
+#     fig = go.Figure()
 
-    # Barra de predicciones
-    fig.add_trace(go.Bar(
-        x=["Unidades Predichas"],
-        y=[total_predicciones],
-        text=[f"{total_predicciones:.2f}"],  # Texto dentro de la barra
-        textposition='inside',  # Mostrar los valores dentro de la barra
-        name="Unidades Predichas",
-        marker_color='blue'  # Color de la barra
-    ))
+#     # Barra de predicciones
+#     fig.add_trace(go.Bar(
+#         x=["Unidades Predichas"],
+#         y=[total_predicciones],
+#         text=[f"{total_predicciones:.2f}"],  # Texto dentro de la barra
+#         textposition='inside',  # Mostrar los valores dentro de la barra
+#         name="Unidades Predichas",
+#         marker_color='blue'  # Color de la barra
+#     ))
 
-    # Barra de stock
-    fig.add_trace(go.Bar(
-        x=["Stock Disponible"],
-        y=[total_stock],
-        text=[f"{total_stock:.2f}"],
-        textposition='inside',  # Mostrar los valores dentro de la barra
-        name="Stock Disponible",
-        marker_color='green'
-    ))
+#     # Barra de stock
+#     fig.add_trace(go.Bar(
+#         x=["Stock Disponible"],
+#         y=[total_stock],
+#         text=[f"{total_stock:.2f}"],
+#         textposition='inside',  # Mostrar los valores dentro de la barra
+#         name="Stock Disponible",
+#         marker_color='green'
+#     ))
 
-    # Configurar el diseño del gráfico
-    fig.update_layout(
-        title={
-            'text': "Comparación: Total Predicciones vs. Stock Disponible",
-            'y': 0.9,  # Ubicación vertical del título
-            'x': 0.5,  # Centrar el título horizontalmente
-            'xanchor': 'center',
-            'yanchor': 'top'
-        },
-        xaxis_title="",  # No se requiere título en el eje X
-        yaxis_title="Unidades",
-        barmode='group',  # Mostrar las barras agrupadas
-        legend=dict(
-            orientation="h",  # Leyenda horizontal
-            yanchor="bottom",
-            y=-0.3,  # Mover la leyenda debajo del gráfico
-            xanchor="center",
-            x=0.5  # Centrar la leyenda
-        ),
-        font=dict(size=12),
-        height=300,  # Altura ajustada
-        margin=dict(t=50, b=50)  # Reducir márgenes para que quepa mejor
-    )
+#     # Configurar el diseño del gráfico
+#     fig.update_layout(
+#         title={
+#             'text': "Comparación: Total Predicciones vs. Stock Disponible",
+#             'y': 0.9,  # Ubicación vertical del título
+#             'x': 0.5,  # Centrar el título horizontalmente
+#             'xanchor': 'center',
+#             'yanchor': 'top'
+#         },
+#         xaxis_title="",  # No se requiere título en el eje X
+#         yaxis_title="Unidades",
+#         barmode='group',  # Mostrar las barras agrupadas
+#         legend=dict(
+#             orientation="h",  # Leyenda horizontal
+#             yanchor="bottom",
+#             y=-0.3,  # Mover la leyenda debajo del gráfico
+#             xanchor="center",
+#             x=0.5  # Centrar la leyenda
+#         ),
+#         font=dict(size=12),
+#         height=300,  # Altura ajustada
+#         margin=dict(t=50, b=50)  # Reducir márgenes para que quepa mejor
+#     )
 
-    # Mostrar el gráfico
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.write("Por favor, selecciona un producto o categoría para visualizar las predicciones.")
+#     # Mostrar el gráfico
+#     st.plotly_chart(fig, use_container_width=True)
+# else:
+#     st.write("Por favor, selecciona un producto o categoría para visualizar las predicciones.")
 
-# --- Plot 2
+# # --- Plot 2
 
-# Extraer las columnas necesarias del archivo original
-df_adicional = df[['GTIN', 'Piezas', 'Precio Unitario', 'Costo Unitario']].copy()
+# # Extraer las columnas necesarias del archivo original
+# df_adicional = df[['GTIN', 'Piezas', 'Precio Unitario', 'Costo Unitario']].copy()
 
-# Calcular el total de piezas por GTIN
-df_adicional = df_adicional.groupby('GTIN', as_index=False).agg(
-    Piezas_Vendidas=('Piezas', 'sum'),
-    Precio_Unitario=('Precio Unitario', 'first'),  # Asume que el precio unitario es constante para cada GTIN
-    Costo_Unitario=('Costo Unitario', 'first')  # Asume que el costo unitario es constante para cada GTIN
-)
+# # Calcular el total de piezas por GTIN
+# df_adicional = df_adicional.groupby('GTIN', as_index=False).agg(
+#     Piezas_Vendidas=('Piezas', 'sum'),
+#     Precio_Unitario=('Precio Unitario', 'first'),  # Asume que el precio unitario es constante para cada GTIN
+#     Costo_Unitario=('Costo Unitario', 'first')  # Asume que el costo unitario es constante para cada GTIN
+# )
 
-# Asegurarnos de que GTIN en ambos DataFrames sea del mismo tipo
-df_filtrado['GTIN'] = df_filtrado['GTIN'].astype('int64')
-df_adicional['GTIN'] = df_adicional['GTIN'].astype('int64')
+# # Asegurarnos de que GTIN en ambos DataFrames sea del mismo tipo
+# df_filtrado['GTIN'] = df_filtrado['GTIN'].astype('int64')
+# df_adicional['GTIN'] = df_adicional['GTIN'].astype('int64')
 
-# Merge para combinar la información adicional con df_filtrado
-df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
+# # Merge para combinar la información adicional con df_filtrado
+# df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 
-# Rellenar valores nulos en Stock y asegurar tipo numérico
-df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0)
-df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
+# # Rellenar valores nulos en Stock y asegurar tipo numérico
+# df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0)
+# df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
 
-##### Cálculo basado en las Reglas de Negocio ######
-
-
-if not all(col in df_filtrado.columns for col in ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']):
-    st.error("Las columnas de predicción no están disponibles en el DataFrame.")
-    st.stop()
-
-for col in ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']:
-    if df_filtrado[col].isna().any():
-        st.error(f"La columna {col} contiene valores nulos. Verifica los datos de entrada.")
-        st.stop()
-
-    if not pd.api.types.is_numeric_dtype(df_filtrado[col]):
-        st.error(f"La columna {col} no es numérica. Verifica el formato de los datos.")
-        st.stop()
+# ##### Cálculo basado en las Reglas de Negocio ######
 
 
-# Calcular la suma de las predicciones de los próximos tres meses
-df_filtrado['Suma Predicciones'] = (
-    df_filtrado['Pred. Sep 2024'] +
-    df_filtrado['Pred. Oct 2024'] +
-    df_filtrado['Pred. Nov 2024']
-)
+# if not all(col in df_filtrado.columns for col in ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']):
+#     st.error("Las columnas de predicción no están disponibles en el DataFrame.")
+#     st.stop()
 
-# Validar y asegurar que 'Suma Predicciones' no tenga valores no numéricos
-df_filtrado['Suma Predicciones'] = pd.to_numeric(df_filtrado['Suma Predicciones'])
+# for col in ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']:
+#     if df_filtrado[col].isna().any():
+#         st.error(f"La columna {col} contiene valores nulos. Verifica los datos de entrada.")
+#         st.stop()
 
-# Inicializar columnas de Estado y Acción
-df_filtrado['Estado Inventario'] = None
-df_filtrado['Acción Recomendada'] = None
+#     if not pd.api.types.is_numeric_dtype(df_filtrado[col]):
+#         st.error(f"La columna {col} no es numérica. Verifica el formato de los datos.")
+#         st.stop()
 
-# SAFE ZONE
-df_filtrado.loc[
-    (df_filtrado['Stock'] >= 1.1 * df_filtrado['Suma Predicciones']) & 
-    (df_filtrado['Stock'] <= 1.3 * df_filtrado['Suma Predicciones']),
-    ['Estado Inventario', 'Acción Recomendada']
-] = ["SAFE ZONE", "Inventario correcto"]
 
-# COMPRA
-compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
+# # Calcular la suma de las predicciones de los próximos tres meses
+# df_filtrado['Suma Predicciones'] = (
+#     df_filtrado['Pred. Sep 2024'] +
+#     df_filtrado['Pred. Oct 2024'] +
+#     df_filtrado['Pred. Nov 2024']
+# )
 
-# Calcular cuántas piezas comprar
-piezas_a_comprar = (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).clip(lower=0)
+# # Validar y asegurar que 'Suma Predicciones' no tenga valores no numéricos
+# df_filtrado['Suma Predicciones'] = pd.to_numeric(df_filtrado['Suma Predicciones'])
 
-# Si el stock es cero, asegurarse de comprar al menos la suma de predicciones
-piezas_a_comprar.loc[df_filtrado['Stock'] == 0] = df_filtrado['Suma Predicciones']
+# # Inicializar columnas de Estado y Acción
+# df_filtrado['Estado Inventario'] = None
+# df_filtrado['Acción Recomendada'] = None
 
-# Asignar estado y acción recomendada para la condición de compra
-df_filtrado.loc[compra_condicion, 'Estado Inventario'] = "COMPRA"
-df_filtrado.loc[compra_condicion, 'Acción Recomendada'] = (
-    "Compra " + piezas_a_comprar[compra_condicion].round(2).astype(str) + " piezas"
-)
+# # SAFE ZONE
+# df_filtrado.loc[
+#     (df_filtrado['Stock'] >= 1.1 * df_filtrado['Suma Predicciones']) & 
+#     (df_filtrado['Stock'] <= 1.3 * df_filtrado['Suma Predicciones']),
+#     ['Estado Inventario', 'Acción Recomendada']
+# ] = ["SAFE ZONE", "Inventario correcto"]
 
-# VENDE
-vende_condicion = df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones']
+# # COMPRA
+# compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
 
-# Calcular cuántas piezas rematar
-piezas_a_rematar = (df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']).clip(lower=0)
+# # Calcular cuántas piezas comprar
+# piezas_a_comprar = (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).clip(lower=0)
 
-# Asignar estado y acción recomendada para la condición de venta
-df_filtrado.loc[vende_condicion, 'Estado Inventario'] = "VENDE"
-df_filtrado.loc[vende_condicion, 'Acción Recomendada'] = (
-    "Remata " + piezas_a_rematar[vende_condicion].round(2).astype(str) + " piezas"
-)
+# # Si el stock es cero, asegurarse de comprar al menos la suma de predicciones
+# piezas_a_comprar.loc[df_filtrado['Stock'] == 0] = df_filtrado['Suma Predicciones']
 
-##### Fin de Cálculo basado en las Reglas de Negocio ######
+# # Asignar estado y acción recomendada para la condición de compra
+# df_filtrado.loc[compra_condicion, 'Estado Inventario'] = "COMPRA"
+# df_filtrado.loc[compra_condicion, 'Acción Recomendada'] = (
+#     "Compra " + piezas_a_comprar[compra_condicion].round(2).astype(str) + " piezas"
+# )
 
-# Mostrar el DataFrame actualizado en Streamlit
-columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
-                         'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
-                         'Stock', 'Suma Predicciones', 'Estado Inventario', 'Acción Recomendada']
+# # VENDE
+# vende_condicion = df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones']
 
-if not df_filtrado.empty:
-    st.subheader("Análisis de Inventario basado en Reglas de Negocio")
-    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
-else:
-    st.write("No se encontraron datos para los filtros seleccionados.")
+# # Calcular cuántas piezas rematar
+# piezas_a_rematar = (df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']).clip(lower=0)
 
-# Final Parte 4
+# # Asignar estado y acción recomendada para la condición de venta
+# df_filtrado.loc[vende_condicion, 'Estado Inventario'] = "VENDE"
+# df_filtrado.loc[vende_condicion, 'Acción Recomendada'] = (
+#     "Remata " + piezas_a_rematar[vende_condicion].round(2).astype(str) + " piezas"
+# )
+
+# ##### Fin de Cálculo basado en las Reglas de Negocio ######
+
+# # Mostrar el DataFrame actualizado en Streamlit
+# columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
+#                          'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
+#                          'Stock', 'Suma Predicciones', 'Estado Inventario', 'Acción Recomendada']
+
+# if not df_filtrado.empty:
+#     st.subheader("Análisis de Inventario basado en Reglas de Negocio")
+#     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+# else:
+#     st.write("No se encontraron datos para los filtros seleccionados.")
+
+# # Final Parte 4
