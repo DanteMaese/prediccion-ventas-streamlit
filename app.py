@@ -13,7 +13,6 @@ def cargar_datos_ventas():
     df = pd.read_excel(RUTA_ARCHIVO)
     print("Columnas disponibles en el archivo:", df.columns)  # Para verificar nombres de columnas
     df = df[df['Empresa'] != 'Tecmilenio']
-    df = df[df['Campus'] == 'Monterrey']  # Filtrar solo para Campus Monterrey
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
     df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
     df_TS = df_TS.set_index('Fecha')
@@ -31,6 +30,27 @@ def procesar_datos(df_TS):
     monthly_df = monthly_df.set_index(['GTIN', 'Campus', 'Fecha']).reindex(product_campus_combinations, fill_value=0).reset_index()
     monthly_df = monthly_df.set_index('Fecha')
     return monthly_df
+
+# --- Selector de Campus ---
+df, df_TS = cargar_datos_ventas()
+
+# Obtener lista única de campus
+lista_campus = sorted(df['Campus'].dropna().unique())
+
+# Mostrar selector de campus
+campus_seleccionado = st.selectbox(
+    "Selecciona un campus para generar la predicción:",
+    options=["Selecciona un campus"] + lista_campus,
+    index=0
+)
+
+# Validar selección de campus
+if campus_seleccionado == "Selecciona un campus":
+    st.warning("Por favor, selecciona un campus para continuar.")
+    st.stop()
+
+# Filtrar datos según el campus seleccionado
+df_TS = df_TS[df_TS['Campus'] == campus_seleccionado]
 
 @st.cache_data
 def generar_predicciones(monthly_df):
@@ -50,6 +70,12 @@ def generar_predicciones(monthly_df):
         forecast_df['Predicción de Unidades'] = forecast_df['Predicción de Unidades'].clip(lower=0)
         forecast_list.append(forecast_df)
     return pd.concat(forecast_list).reset_index(drop=True)
+
+# Procesar los datos
+monthly_df = procesar_datos(df_TS)
+
+# Generar predicciones
+forecast_df = generar_predicciones(monthly_df)
 
 # Final Parte 1
 
