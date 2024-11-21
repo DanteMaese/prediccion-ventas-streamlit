@@ -5,6 +5,7 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 # Inicio Parte 1
 
+# Definir la ruta del archivo como variable para facilidad de ajuste
 RUTA_ARCHIVO = "Ventas.xlsx"
 
 st.title("TECStore - Detalle de ventas futuras y prescripción de inventarios")
@@ -13,7 +14,9 @@ st.title("TECStore - Detalle de ventas futuras y prescripción de inventarios")
 def cargar_datos():
     """Carga y limpia los datos de Excel, excluyendo registros de 'Tecmilenio'."""
     df = pd.read_excel(RUTA_ARCHIVO)
-    df = df[df['Empresa'] != 'Tecmilenio']  # Excluir registros de Tecmilenio
+    print("Columnas disponibles en el archivo:", df.columns)  # Para verificar nombres de columnas
+    df = df[df['Empresa'] != 'Tecmilenio']
+    df = df[df['Campus'] == 'Monterrey']  # Filtrar solo para Campus Monterrey
     df_TS = df[["Fecha", "GTIN", "Piezas", "Campus"]].dropna()
     df_TS['Fecha'] = pd.to_datetime(df_TS['Fecha'])
     df_TS = df_TS.set_index('Fecha')
@@ -31,32 +34,6 @@ def procesar_datos(df_TS):
     monthly_df = monthly_df.set_index(['GTIN', 'Campus', 'Fecha']).reindex(product_campus_combinations, fill_value=0).reset_index()
     monthly_df = monthly_df.set_index('Fecha')
     return monthly_df
-
-##
-
-# Selector de Campus
-df, df_TS = cargar_datos()
-
-# Obtener lista única de campus directamente desde `df`
-lista_campus = sorted(df['Campus'].dropna().unique())
-
-# Mostrar selector de campus
-campus_seleccionado = st.selectbox(
-    "Selecciona un campus para generar la predicción:",
-    options=["Campus"] + lista_campus,
-    index=0
-)
-
-# Validar selección de campus
-if campus_seleccionado == "Campus":
-    st.warning("Por favor, selecciona un campus para continuar.")
-    st.stop()
-
-# Filtrar `df_TS` y procesar datos del campus seleccionado
-df_TS = df_TS[df_TS['Campus'] == campus_seleccionado]
-monthly_df = procesar_datos(df_TS)
-
-##
 
 @st.cache_data
 def generar_predicciones(monthly_df):
@@ -102,9 +79,10 @@ RUTA_STOCK = "Stock.xlsx"
 # --- Cargar el archivo de stock y realizar el join ---
 @st.cache_data
 def cargar_stock():
+    """Carga los datos de stock desde el archivo BD Stock.xlsx."""
     try:
-        stock_df = pd.read_excel(RUTA_STOCK)
-        stock_df['GTIN'] = pd.to_numeric(stock_df['GTIN'], errors='coerce').fillna(0).astype('int64')  # Asegurar que GTIN sea numérico
+        stock_df = pd.read_excel(RUTA_STOCK)  # Usar la ruta definida para el archivo de stock
+        stock_df['GTIN'] = stock_df['GTIN'].astype('int64')  # Convertir GTIN a int
         return stock_df
     except FileNotFoundError:
         st.error(f"El archivo '{RUTA_STOCK}' no se encuentra. Verifica que esté en el repositorio.")
@@ -129,34 +107,33 @@ fechas_mapeo = {
 }
 forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
 
-# Asegurar que GTIN sea numérico en forecast_consolidado
-forecast_consolidado['GTIN'] = pd.to_numeric(forecast_consolidado['GTIN'], errors='coerce').fillna(0).astype('int64')
+# Asegurarse de que GTIN en ambos DataFrames esté en el mismo formato
+forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
+stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 
 # Realizar el join para agregar el stock
-forecast_consolidado = forecast_consolidado.merge(
-    stock_df[['GTIN', 'Stock']], 
-    on='GTIN', 
-    how='left'
-)
+forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
+
+# Mostrar resultados en Streamlit
+st.title("Predicción Consolidada de Ventas - Campus MTY")
 
 # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
 forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
 
-# Crear el DataFrame inicial para aplicar filtros
-df_filtrado = forecast_consolidado.copy()
-
 # Filtros para Producto y Categoría
 productos_seleccionados = st.multiselect(
     "Escribe o selecciona uno o varios productos:",
-    options=sorted(df_filtrado['Producto'].unique())  # Ordenar productos alfabéticamente
+    options=sorted(forecast_consolidado['Producto'].unique())  # Ordenar productos alfabéticamente
 )
 
 categorias_seleccionadas = st.multiselect(
     "Escribe o selecciona una o varias categorías:",
-    options=df_filtrado['Categoría'].unique()
+    options=forecast_consolidado['Categoría'].unique()
 )
 
 # Aplicar los filtros al DataFrame consolidado
+df_filtrado = forecast_consolidado.copy()
+
 if productos_seleccionados:
     df_filtrado = df_filtrado[df_filtrado['Producto'].isin(productos_seleccionados)]
 
@@ -181,13 +158,14 @@ if not df_filtrado.empty:
     # Mostrar el DataFrame con formato mejorado
     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 else:
-    st.warning("No se encontraron predicciones que coincidan con los filtros seleccionados.")
-
+    st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
+    
 # Final Parte 3
 
 # Inicio Parte 4
 
-# --- Plot 1: Comparación Total Predicciones vs. Stock ---
+# -- Plot 1
+
 import plotly.graph_objects as go
 
 if not df_filtrado.empty:
@@ -202,10 +180,10 @@ if not df_filtrado.empty:
     fig.add_trace(go.Bar(
         x=["Unidades Predichas"],
         y=[total_predicciones],
-        text=[f"{total_predicciones:.2f}"],
-        textposition='inside',
+        text=[f"{total_predicciones:.2f}"],  # Texto dentro de la barra
+        textposition='inside',  # Mostrar los valores dentro de la barra
         name="Unidades Predichas",
-        marker_color='blue'
+        marker_color='blue'  # Color de la barra
     ))
 
     # Barra de stock
@@ -213,7 +191,7 @@ if not df_filtrado.empty:
         x=["Stock Disponible"],
         y=[total_stock],
         text=[f"{total_stock:.2f}"],
-        textposition='inside',
+        textposition='inside',  # Mostrar los valores dentro de la barra
         name="Stock Disponible",
         marker_color='green'
     ))
@@ -222,24 +200,24 @@ if not df_filtrado.empty:
     fig.update_layout(
         title={
             'text': "Comparación: Total Predicciones vs. Stock Disponible",
-            'y': 0.9,
-            'x': 0.5,
+            'y': 0.9,  # Ubicación vertical del título
+            'x': 0.5,  # Centrar el título horizontalmente
             'xanchor': 'center',
             'yanchor': 'top'
         },
-        xaxis_title="",
+        xaxis_title="",  # No se requiere título en el eje X
         yaxis_title="Unidades",
-        barmode='group',
+        barmode='group',  # Mostrar las barras agrupadas
         legend=dict(
-            orientation="h",
+            orientation="h",  # Leyenda horizontal
             yanchor="bottom",
-            y=-0.3,
+            y=-0.3,  # Mover la leyenda debajo del gráfico
             xanchor="center",
-            x=0.5
+            x=0.5  # Centrar la leyenda
         ),
         font=dict(size=12),
-        height=300,
-        margin=dict(t=50, b=50)
+        height=300,  # Altura ajustada
+        margin=dict(t=50, b=50)  # Reducir márgenes para que quepa mejor
     )
 
     # Mostrar el gráfico
@@ -247,20 +225,21 @@ if not df_filtrado.empty:
 else:
     st.write("Por favor, selecciona un producto o categoría para visualizar las predicciones.")
 
-# --- Plot 2: Análisis de Liquidación ---
+# --- Plot 2
+
 # Extraer las columnas necesarias del archivo original
 df_adicional = df[['GTIN', 'Piezas', 'Precio Unitario', 'Costo Unitario']].copy()
 
 # Calcular el total de piezas por GTIN
 df_adicional = df_adicional.groupby('GTIN', as_index=False).agg(
     Piezas_Vendidas=('Piezas', 'sum'),
-    Precio_Unitario=('Precio Unitario', 'first'),
-    Costo_Unitario=('Costo Unitario', 'first')
+    Precio_Unitario=('Precio Unitario', 'first'),  # Asume que el precio unitario es constante para cada GTIN
+    Costo_Unitario=('Costo Unitario', 'first')  # Asume que el costo unitario es constante para cada GTIN
 )
 
 # Asegurarnos de que GTIN en ambos DataFrames sea del mismo tipo
-df_filtrado['GTIN'] = pd.to_numeric(df_filtrado['GTIN'], errors='coerce').fillna(0).astype('int64')
-df_adicional['GTIN'] = pd.to_numeric(df_adicional['GTIN'], errors='coerce').fillna(0).astype('int64')
+df_filtrado['GTIN'] = df_filtrado['GTIN'].astype('int64')
+df_adicional['GTIN'] = df_adicional['GTIN'].astype('int64')
 
 # Merge para combinar la información adicional con df_filtrado
 df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
@@ -268,65 +247,102 @@ df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 # Reemplazar valores NaN en columnas relevantes
 df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0.00)
 
-# Calcular el promedio mensual basado en predicciones y piezas vendidas (histórico)
+##### ###### Cálculo de Unidades para Rematar ###### ######
+
+# Calcular el promedio mensual basado en predicciones y piezas vendidas (historico)
 df_filtrado['Promedio Mensual'] = (
     df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1) +
     df_filtrado['Piezas_Vendidas'].astype(float)
 ) / 12
 
-# Excedente de Inventario Actual - Excedente = Stock - (Promedio Mensual * 6)
+# Excedente de Inventario Actual - Excedente = Stock - (Promedio Mensual * 6). Si este excedente es mayor a 0, se consideran estas unidades como rematables.
 df_filtrado['Unidades para Rematar'] = (
     df_filtrado['Stock'].astype(float) - (df_filtrado['Promedio Mensual'] * 6)
-).clip(lower=0)
+).clip(lower=0)  # Evitar valores negativos
 
-# Precio de Remate por Unidad
+# Precio de Remate por Unidad:
 df_filtrado['Precio de Remate por Unidad'] = (
     (df_filtrado['Precio_Unitario'] - df_filtrado['Costo_Unitario']) * 0.8
-).clip(lower=0)
+).clip(lower=0)  # Evitar precios negativos
 
-# Total a Generar por Remate
+# Total a Generar por Remate:
 df_filtrado['Total a Generar por Remate'] = (
     df_filtrado['Unidades para Rematar'] * df_filtrado['Precio de Remate por Unidad']
 )
 
+##### ###### Cálculo de Unidades para Rematar ###### ######
+
+# Formatear columnas para visualización
+columnas_formatear = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
+                      'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
+                      'Stock', 'Promedio Mensual', 'Unidades para Rematar', 'Precio de Remate por Unidad','Total a Generar por Remate']
+
+# Aplicar formato a las columnas numéricas
+df_filtrado[columnas_formatear] = df_filtrado[columnas_formatear].applymap(
+    lambda x: "{:.2f}".format(x) if isinstance(x, (int, float)) else x
+)
+
+# Mostrar el DataFrame actualizado en Streamlit
+columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
+                         'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
+                         'Stock', 'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
+                         'Promedio Mensual', 'Unidades para Rematar', 'Precio de Remate por Unidad','Total a Generar por Remate']
+
+if not df_filtrado.empty:
+    st.subheader("Análisis de Liquidación con Métricas Adicionales")
+    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+else:
+    st.write("No se encontraron datos para los filtros seleccionados.")
+
+
+
+import plotly.express as px
+
+# Asegurar que la columna 'Unidades para Rematar' sea numérica y manejar valores no válidos
+df_filtrado['Unidades para Rematar'] = pd.to_numeric(df_filtrado['Unidades para Rematar'], errors='coerce').fillna(0)
+
 # Crear un DataFrame con solo los productos marcados para remate
 productos_a_rematar = df_filtrado[df_filtrado['Unidades para Rematar'] > 0]
 
-# Validar si hay productos para rematar
-if productos_a_rematar.empty:
-    st.warning("No hay productos para rematar, por lo que no se generará el gráfico.")
-else:
-    # Limpiar y validar datos en productos_a_rematar
-    for col in ['Piezas_Vendidas', 'Stock', 'Unidades para Rematar']:
-        productos_a_rematar[col] = pd.to_numeric(productos_a_rematar[col], errors='coerce').fillna(0)
-    
-    # Crear DataFrame para graficar
+if not productos_a_rematar.empty:
+    # Crear un DataFrame para el gráfico (solo piezas vendidas, stock y unidades para rematar)
     df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock', 'Unidades para Rematar']].copy()
 
-    # Verificar si hay columnas necesarias
-    if not all(col in df_plot.columns for col in ['Producto', 'Piezas_Vendidas', 'Stock', 'Unidades para Rematar']):
-        st.error("Faltan columnas necesarias para generar el gráfico.")
-    else:
-        fig = px.bar(
-            df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock', 'Unidades para Rematar']),
-            x='Producto',
-            y='value',
-            color='variable',
-            title="Análisis de Liquidación: Inventario y Predicciones",
-            labels={'value': 'Unidades', 'variable': 'Métricas'},
-            barmode='group',
-            text_auto=True
-        )
+    # Crear el gráfico de barras agrupadas
+    fig = px.bar(
+        df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock', 'Unidades para Rematar']),
+        x='Producto',
+        y='value',
+        color='variable',
+        title="Análisis de Liquidación: Inventario y Predicciones",
+        labels={'value': 'Unidades', 'variable': 'Métricas'},
+        barmode='group',
+        text_auto=True
+    )
 
-        fig.update_layout(
-            xaxis_title="Productos",
-            yaxis_title="Unidades",
-            legend_title="Métricas",
-            height=400,
-            margin=dict(t=50, b=50),
-            font=dict(size=12)
-        )
+    # Ajustar el diseño del gráfico
+    fig.update_layout(
+        xaxis_title="Productos",
+        yaxis_title="Unidades",
+        legend_title="Métricas",
+        height=400,
+        margin=dict(t=50, b=50),
+        font=dict(size=12)
+    )
 
-        st.plotly_chart(fig, use_container_width=True)
+    # Mostrar el gráfico en Streamlit
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Mostrar KPI para el precio de remate
+    st.subheader("Precio de Remate")
+    for index, row in productos_a_rematar.iterrows():
+        st.metric(
+            label=f"Producto: {row['Producto']}",
+            value=f"${float(row['Precio de Remate por Unidad']):.2f}",
+            delta=None,
+            delta_color="normal"
+        )
+else:
+    st.write("No se encontraron productos con exceso de stock para liquidar.")
 
 # Final Parte 4
