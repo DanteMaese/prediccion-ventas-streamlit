@@ -5,6 +5,10 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 # Inicio Parte 1
 
+RUTA_ARCHIVO = "Ventas.xlsx"
+
+st.title("Detalle de ventas futuras y prescripción de inventarios")
+
 @st.cache_data
 def cargar_lista_campus():
     df = pd.read_excel(RUTA_ARCHIVO)
