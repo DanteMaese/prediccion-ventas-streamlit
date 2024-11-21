@@ -57,6 +57,11 @@ def generar_predicciones(monthly_df):
     forecast_list = []
     for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus']):
         group = group.resample('M').sum()['Piezas']
+        
+        if len(group) < 24:
+            st.warning(f"No hay suficientes datos para el producto {product} en el campus {campus}. Se omitirá.")
+            continue
+        
         model = ExponentialSmoothing(group, trend="add", seasonal="add", seasonal_periods=12)
         fit_model = model.fit()
         forecast = fit_model.forecast(steps=3)
