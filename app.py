@@ -294,38 +294,39 @@ else:
     st.warning("No se encontraron datos para los filtros seleccionados.")
 
 # --- Gráfico de Análisis de Liquidación ---
-# Filtrar productos con exceso de stock para rematar
-productos_a_rematar = df_filtrado[df_filtrado['Unidades para Rematar'] > 0]
-
 if not productos_a_rematar.empty:
-    # Crear un DataFrame para el gráfico
-    df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock', 'Unidades para Rematar']]
+    df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock', 'Unidades para Rematar']].copy()
 
-    # Crear el gráfico de barras agrupadas
-    fig = px.bar(
-        df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock', 'Unidades para Rematar']),
-        x='Producto',
-        y='value',
-        color='variable',
-        title="Análisis de Liquidación: Inventario y Predicciones",
-        labels={'value': 'Unidades', 'variable': 'Métricas'},
-        barmode='group',
-        text_auto=True
-    )
+    # Verificar si el DataFrame tiene datos válidos
+    if df_plot.empty:
+        st.warning("No hay datos para mostrar en el gráfico.")
+    else:
+        df_plot['Piezas_Vendidas'] = pd.to_numeric(df_plot['Piezas_Vendidas'], errors='coerce').fillna(0)
+        df_plot['Stock'] = pd.to_numeric(df_plot['Stock'], errors='coerce').fillna(0)
+        df_plot['Unidades para Rematar'] = pd.to_numeric(df_plot['Unidades para Rematar'], errors='coerce').fillna(0)
 
-    # Configurar el diseño del gráfico
-    fig.update_layout(
-        xaxis_title="Productos",
-        yaxis_title="Unidades",
-        legend_title="Métricas",
-        height=400,
-        margin=dict(t=50, b=50),
-        font=dict(size=12)
-    )
+        fig = px.bar(
+            df_plot.melt(id_vars='Producto', value_vars=['Piezas_Vendidas', 'Stock', 'Unidades para Rematar']),
+            x='Producto',
+            y='value',
+            color='variable',
+            title="Análisis de Liquidación: Inventario y Predicciones",
+            labels={'value': 'Unidades', 'variable': 'Métricas'},
+            barmode='group',
+            text_auto=True
+        )
 
-    # Mostrar el gráfico en Streamlit
-    st.plotly_chart(fig, use_container_width=True)
+        fig.update_layout(
+            xaxis_title="Productos",
+            yaxis_title="Unidades",
+            legend_title="Métricas",
+            height=400,
+            margin=dict(t=50, b=50),
+            font=dict(size=12)
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
 else:
     st.warning("No se encontraron productos con exceso de stock para liquidar.")
-
+    
 # Final Parte 4
