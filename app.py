@@ -50,9 +50,9 @@ def generar_predicciones(monthly_df):
             'Fecha': forecast.index,
             'Predicción de Unidades': forecast.values
         })
-        forecast_df['Predicción de Unidades'] = forecast_df['Predicción de Unidades'].clip(lower=0)
-        forecast_list.append(forecast_df)
-    return pd.concat(forecast_list).reset_index(drop=True)
+    #     forecast_df['Predicción de Unidades'] = forecast_df['Predicción de Unidades'].clip(lower=0)
+    #     forecast_list.append(forecast_df)
+    # return pd.concat(forecast_list).reset_index(drop=True)
 
 # Final Parte 1
 
