@@ -70,6 +70,7 @@ for (product, campus, period), group in monthly_df.groupby(['GTIN', 'Campus','Pe
         'Campus': campus,
         'Fecha': forecast.index,
         'Predicted Units Sold': forecast.values
+     })
 
 st.subheader("Tabla de Predicciones Consolidadas")
 st.dataframe(forecast_df, use_container_width=True)
