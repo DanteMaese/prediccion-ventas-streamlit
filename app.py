@@ -10,7 +10,7 @@ RUTA_ARCHIVO = "Ventas.xlsx"
 
 # --- Funciones de procesamiento con caché ---
 @st.cache_data
-def cargar_datos(campus='Monterrey'):
+def cargar_datos(campus=None):
     df = pd.read_excel(RUTA_ARCHIVO)
     df = df[df['Empresa'] != 'Tecmilenio'] # Excluir registros de Tecmilenio
  # Aplicar filtro dinámico por Campus
@@ -120,7 +120,6 @@ st.title("Detalle de ventas futuras y prescripción de inventarios")
 forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
 
 # --- Filtro por Campus ---
-st.subheader("Selecciona el Campus")
 campus_opciones = forecast_consolidado['Campus'].unique()
 campus_seleccionado = st.selectbox(
     "Elige un campus de la lista:",
