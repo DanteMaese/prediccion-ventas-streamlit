@@ -8,13 +8,12 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 # Definir la ruta del archivo como variable para facilidad de ajuste
 RUTA_ARCHIVO = "Ventas.xlsx"
 
-
-# Mostrar resultados en Streamlit
-st.title("Detalle de ventas futuras y prescripción de inventarios")
-
 # Obtener la lista única de campus desde el archivo de ventas
 df_inicial = pd.read_excel(RUTA_ARCHIVO)
 lista_campus = sorted(df_inicial['Campus'].dropna().unique())  # Excluir valores NaN
+
+# Mostrar resultados en Streamlit
+st.title("Detalle de ventas futuras y prescripción de inventarios")
 
 # Agregar un selectbox para seleccionar el campus
 campus_seleccionado = st.selectbox(
