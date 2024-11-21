@@ -247,6 +247,10 @@ df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 # Reemplazar valores NaN en columnas relevantes
 df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0.00)
 
+# Rellenar valores nulos en Stock y asegurar tipo numérico
+df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0)
+df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
+
 ##### ###### Cálculo basado en las Reglas de Negocio ###### ######
 
 # Calcular la suma de las predicciones de los próximos tres meses
