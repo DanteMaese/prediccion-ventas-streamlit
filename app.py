@@ -269,22 +269,17 @@ df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0.00)
 #     df_filtrado['Unidades para Rematar'] * df_filtrado['Precio de Remate por Unidad']
 # )
 
-
-# Calcular la suma de las predicciones de los próximos tres meses
-df_filtrado['Suma Predicciones'] = (
+# Asegurar tipos de datos antes de cálculos
+df_filtrado['Suma Predicciones'] = pd.to_numeric(
     df_filtrado['Pred. Sep 2024'] +
     df_filtrado['Pred. Oct 2024'] +
-    df_filtrado['Pred. Nov 2024']
-)
+    df_filtrado['Pred. Nov 2024'],
+    errors='coerce'
+).fillna(0)
 
-# Convertir 'Suma Predicciones' a tipo float
-df_filtrado['Suma Predicciones'] = pd.to_numeric(df_filtrado['Suma Predicciones'], errors='coerce').fillna(0)
+df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
 
-# Validar nuevamente los tipos de datos
-st.subheader("Tipos de Datos Después de la Conversión")
-st.write(df_filtrado[['Stock', 'Suma Predicciones']].dtypes)
-
-# Inicializar columnas de Estado y Acción
+# Inicializar columnas
 df_filtrado['Estado Inventario'] = None
 df_filtrado['Acción Recomendada'] = None
 
@@ -297,14 +292,8 @@ df_filtrado.loc[
 
 # COMPRA
 compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
-
-# Calcular cuántas piezas comprar
 piezas_a_comprar = (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).clip(lower=0)
-
-# Si el stock es cero, comprar al menos la suma de predicciones
 piezas_a_comprar.loc[df_filtrado['Stock'] == 0] = df_filtrado['Suma Predicciones']
-
-# Asignar estado y acción recomendada para la condición de compra
 df_filtrado.loc[compra_condicion, 'Estado Inventario'] = "COMPRA"
 df_filtrado.loc[compra_condicion, 'Acción Recomendada'] = (
     "Compra " + piezas_a_comprar[compra_condicion].round(2).astype(str) + " piezas"
@@ -312,11 +301,7 @@ df_filtrado.loc[compra_condicion, 'Acción Recomendada'] = (
 
 # VENDE
 vende_condicion = df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones']
-
-# Calcular cuántas piezas rematar
 piezas_a_rematar = (df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']).clip(lower=0)
-
-# Asignar estado y acción recomendada para la condición de venta
 df_filtrado.loc[vende_condicion, 'Estado Inventario'] = "VENDE"
 df_filtrado.loc[vende_condicion, 'Acción Recomendada'] = (
     "Remata " + piezas_a_rematar[vende_condicion].round(2).astype(str) + " piezas"
@@ -324,27 +309,39 @@ df_filtrado.loc[vende_condicion, 'Acción Recomendada'] = (
 
 ##### Fin de Cálculo basado en las Reglas de Negocio ######
 
-# Formatear columnas para visualización
-columnas_formatear = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
-                      'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
-                      'Stock', 'Promedio Mensual', 'Unidades para Rematar', 'Precio de Remate por Unidad','Total a Generar por Remate']
-
-# Aplicar formato a las columnas numéricas
-df_filtrado[columnas_formatear] = df_filtrado[columnas_formatear].applymap(
-    lambda x: "{:.2f}".format(x) if isinstance(x, (int, float)) else x
-)
-
-# Mostrar el DataFrame actualizado en Streamlit
+# Mostrar el DataFrame actualizado
 columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
                          'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
-                         'Stock', 'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
-                         'Promedio Mensual', 'Unidades para Rematar', 'Precio de Remate por Unidad','Total a Generar por Remate']
+                         'Stock', 'Estado Inventario', 'Acción Recomendada']
 
 if not df_filtrado.empty:
-    st.subheader("Análisis de Liquidación con Métricas Adicionales")
+    st.subheader("Análisis de Inventario con Reglas de Negocio")
     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 else:
     st.write("No se encontraron datos para los filtros seleccionados.")
+
+
+# # Formatear columnas para visualización
+# columnas_formatear = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
+#                       'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
+#                       'Stock', 'Promedio Mensual', 'Unidades para Rematar', 'Precio de Remate por Unidad','Total a Generar por Remate']
+
+# # Aplicar formato a las columnas numéricas
+# df_filtrado[columnas_formatear] = df_filtrado[columnas_formatear].applymap(
+#     lambda x: "{:.2f}".format(x) if isinstance(x, (int, float)) else x
+# )
+
+# # Mostrar el DataFrame actualizado en Streamlit
+# columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
+#                          'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
+#                          'Stock', 'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
+#                          'Promedio Mensual', 'Unidades para Rematar', 'Precio de Remate por Unidad','Total a Generar por Remate']
+
+# if not df_filtrado.empty:
+#     st.subheader("Análisis de Liquidación con Métricas Adicionales")
+#     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+# else:
+#     st.write("No se encontraron datos para los filtros seleccionados.")
 
 ############################################################################################
 
