@@ -10,7 +10,7 @@ RUTA_ARCHIVO = "Ventas.xlsx"
 
 # --- Funciones de procesamiento con caché ---
 @st.cache_data
-def cargar_datos_ventas():
+def cargar_datos():
     """Carga y limpia los datos de Excel, excluyendo registros de 'Tecmilenio'."""
     df = pd.read_excel(RUTA_ARCHIVO)
     print("Columnas disponibles en el archivo:", df.columns)  # Para verificar nombres de columnas
