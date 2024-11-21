@@ -83,7 +83,7 @@ def cargar_stock():
     try:
         stock_df = pd.read_excel(RUTA_STOCK)  # Usar la ruta definida para el archivo de stock
         stock_df['GTIN'] = stock_df['GTIN'].astype('int64')  # Convertir GTIN a int
-        stock_df['Stock'] = stock_df['Stock'].fillna(0)  # Rellenar valores nulos en Stock con 0
+        # stock_df['Stock'] = stock_df['Stock'].fillna(0)  # Rellenar valores nulos en Stock con 0
         return stock_df
     except FileNotFoundError:
         st.error(f"El archivo '{RUTA_STOCK}' no se encuentra. Verifica que esté en el repositorio.")
@@ -112,17 +112,22 @@ forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
 forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
 stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 
-# Realizar el join para agregar el stock
-forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
-
 ##
+# Realizar el merge para agregar el stock
+forecast_consolidado = forecast_consolidado.merge(
+    stock_df[['GTIN', 'Stock']], on='GTIN', how='left'
+)
+
 # Verificar GTINs sin coincidencia
 gtin_no_match = forecast_consolidado[forecast_consolidado['Stock'].isnull()]
 if not gtin_no_match.empty:
-    st.write("GTINs sin coincidencia en stock_df:", gtin_no_match[['GTIN', 'Producto']])
+    st.write("GTINs sin coincidencia en stock_df (asignando Stock = 0):", gtin_no_match[['GTIN', 'Producto']])
 
-# Rellenar valores nulos en Stock después del merge
+# Rellenar valores nulos en Stock después del merge con 0
 forecast_consolidado['Stock'] = forecast_consolidado['Stock'].fillna(0)
+
+# Asegurar que Stock sea numérico
+forecast_consolidado['Stock'] = pd.to_numeric(forecast_consolidado['Stock'], errors='coerce').fillna(0)
 ##
 
 # Mostrar resultados en Streamlit
