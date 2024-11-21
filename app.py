@@ -9,14 +9,17 @@ RUTA_ARCHIVO = "Ventas.xlsx"
 
 st.title("Detalle de ventas futuras y prescripción de inventarios")
 
+# Cargar lista de campus
 @st.cache_data
 def cargar_lista_campus():
     df = pd.read_excel(RUTA_ARCHIVO)
     df = df[df['Empresa'] != 'Tecmilenio']
+    df['Campus'] = df['Campus'].str.strip()  # Limpiar espacios
     return sorted(df['Campus'].dropna().unique())
 
 lista_campus = cargar_lista_campus()
 
+# Selección de campus
 campus_seleccionado = st.selectbox(
     "Elige un campus de la lista:",
     options=["Campus"] + lista_campus,
@@ -24,8 +27,10 @@ campus_seleccionado = st.selectbox(
 )
 
 if campus_seleccionado == "Campus":
+    st.warning("Por favor selecciona un campus válido.")
     st.stop()
 
+# Cargar datos del campus seleccionado
 @st.cache_data
 def cargar_datos(campus):
     df = pd.read_excel(RUTA_ARCHIVO)
@@ -38,26 +43,23 @@ def cargar_datos(campus):
 
 df_TS = cargar_datos(campus_seleccionado)
 
+# Generar predicciones
 @st.cache_data
 def generar_predicciones(monthly_df):
-    # Verificar si hay series temporales con menos de 24 datos antes de realizar cualquier predicción
     productos_insuficientes = [
         (product, campus)
         for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus'])
         if len(group) < 24
     ]
 
-    # Si se encuentran productos con datos insuficientes, detener la ejecución
     if productos_insuficientes:
-        st.error("No es posible ejecutar la predicción debido a la falta de datos suficientes para algunos productos/campus.")
+        st.error("No es posible ejecutar la predicción debido a la falta de datos suficientes.")
         st.stop()
 
-    # Lista para almacenar los resultados de las predicciones
     forecast_list = []
 
-    # Realizar predicciones solo para productos/campus con suficientes datos
     for (product, campus), group in monthly_df.groupby(['GTIN', 'Campus']):
-        group = group.resample('M').sum()['Piezas']
+        group = group.resample('M').sum().fillna(0)  # Asegurar datos mensuales completos
         model = ExponentialSmoothing(group, trend="add", seasonal="add", seasonal_periods=12)
         fit_model = model.fit()
         forecast = fit_model.forecast(steps=3)
