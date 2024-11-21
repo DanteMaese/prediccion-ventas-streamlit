@@ -261,6 +261,20 @@ df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fill
 
 ##### Cálculo basado en las Reglas de Negocio ######
 
+if not all(col in df_filtrado.columns for col in ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']):
+    st.error("Las columnas de predicción no están disponibles en el DataFrame.")
+    st.stop()
+
+for col in ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']:
+    if df_filtrado[col].isna().any():
+        st.error(f"La columna {col} contiene valores nulos. Verifica los datos de entrada.")
+        st.stop()
+
+    if not pd.api.types.is_numeric_dtype(df_filtrado[col]):
+        st.error(f"La columna {col} no es numérica. Verifica el formato de los datos.")
+        st.stop()
+
+
 # Calcular la suma de las predicciones de los próximos tres meses
 df_filtrado['Suma Predicciones'] = (
     df_filtrado['Pred. Sep 2024'] +
