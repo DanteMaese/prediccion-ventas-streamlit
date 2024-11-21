@@ -32,10 +32,6 @@ def procesar_datos(df_TS):
     monthly_df = monthly_df.set_index('Fecha')
     return monthly_df
 
-# --- Cargar y procesar datos iniciales ---
-df, df_TS = cargar_datos()
-monthly_df = procesar_datos(df_TS)
-
 # --- Selector de Campus ---
 # Obtener lista única de campus
 lista_campus = sorted(df['Campus'].dropna().unique())
@@ -78,6 +74,8 @@ def generar_predicciones(monthly_df):
 # Inicio Parte 2
 
 # --- Cargar y procesar los datos usando las funciones cacheadas ---
+df, df_TS = cargar_datos()
+monthly_df = procesar_datos(df_TS)
 forecast_df = generar_predicciones(monthly_df)
 
 # Extraer las columnas únicas de GTIN, Producto y Categoría para el join
