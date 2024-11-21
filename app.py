@@ -92,30 +92,59 @@ def cargar_stock():
 # Cargar los datos de stock
 stock_df = cargar_stock()
 
-# Consolidar las predicciones en columnas por fecha
-forecast_consolidado = forecast_df.pivot_table(
-    index=['GTIN', 'Producto', 'Categoría', 'Campus'],  # Incluir Producto y Categoría en el índice
-    columns='Fecha',                                    # Las fechas se convierten en columnas
-    values='Predicción de Unidades',                    # Usar las predicciones como valores
-    aggfunc='sum'                                       # Sumar valores si hay duplicados
-).reset_index()
+# # Consolidar las predicciones en columnas por fecha
+# forecast_consolidado = forecast_df.pivot_table(
+#     index=['GTIN', 'Producto', 'Categoría', 'Campus'],  # Incluir Producto y Categoría en el índice
+#     columns='Fecha',                                    # Las fechas se convierten en columnas
+#     values='Predicción de Unidades',                    # Usar las predicciones como valores
+#     aggfunc='sum'                                       # Sumar valores si hay duplicados
+# ).reset_index()
 
-# Renombrar columnas según las fechas mapeadas
-fechas_mapeo = {
-    pd.Timestamp('2024-09-30'): 'Pred. Sep 2024',
-    pd.Timestamp('2024-10-31'): 'Pred. Oct 2024',
-    pd.Timestamp('2024-11-30'): 'Pred. Nov 2024'
-}
-forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
+# # Renombrar columnas según las fechas mapeadas
+# fechas_mapeo = {
+#     pd.Timestamp('2024-09-30'): 'Pred. Sep 2024',
+#     pd.Timestamp('2024-10-31'): 'Pred. Oct 2024',
+#     pd.Timestamp('2024-11-30'): 'Pred. Nov 2024'
+# }
+# forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
 
-# Asegurarse de que GTIN en ambos DataFrames esté en el mismo formato
+# # Asegurarse de que GTIN en ambos DataFrames esté en el mismo formato
+# forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
+# stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
+
+# # Realizar el merge para agregar el stock
+# forecast_consolidado = forecast_consolidado.merge(
+#     stock_df[['GTIN', 'Stock']], on='GTIN', how='left'
+# )
+
+def transformar_predicciones(forecast_df):
+    # Asegúrate de que las fechas están en formato datetime
+    forecast_df['Fecha'] = pd.to_datetime(forecast_df['Fecha'], errors='coerce')
+
+    # Crear un DataFrame en formato ancho usando pivot
+    predicciones_ancho = forecast_df.pivot(index=['GTIN', 'Campus'], columns='Fecha', values='Predicción de Unidades')
+
+    # Renombrar columnas para mayor claridad
+    predicciones_ancho.columns = predicciones_ancho.columns.strftime('Pred. %b %Y')
+
+    # Completar valores nulos con ceros
+    predicciones_ancho = predicciones_ancho.fillna(0)
+
+    # Resetear el índice para prepararlo para el merge
+    return predicciones_ancho.reset_index()
+
+# Aplicar la transformación
+forecast_consolidado = transformar_predicciones(forecast_df)
+
+# Asegurarse de que GTIN tiene el mismo formato en ambos DataFrames
 forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
 stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
 
-## validación
-# Realizar el merge para agregar el stock
+# Realizar el merge
 forecast_consolidado = forecast_consolidado.merge(
-    stock_df[['GTIN', 'Stock']], on='GTIN', how='left'
+    stock_df[['GTIN', 'Stock']],
+    on='GTIN',
+    how='left'
 )
 
 # Rellenar valores nulos en Stock después del merge con 0
@@ -123,7 +152,6 @@ forecast_consolidado['Stock'] = forecast_consolidado['Stock'].fillna(0)
 
 # Asegurar que Stock sea numérico
 forecast_consolidado['Stock'] = pd.to_numeric(forecast_consolidado['Stock'], errors='coerce').fillna(0)
-## validación
 
 # Mostrar resultados en Streamlit
 # st.title("Predicción Consolidada de Ventas - Campus MTY")
@@ -260,6 +288,7 @@ df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0)
 df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
 
 ##### Cálculo basado en las Reglas de Negocio ######
+
 
 if not all(col in df_filtrado.columns for col in ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']):
     st.error("Las columnas de predicción no están disponibles en el DataFrame.")
