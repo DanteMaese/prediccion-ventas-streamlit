@@ -268,8 +268,9 @@ df_filtrado['Suma Predicciones'] = (
     df_filtrado['Pred. Nov 2024']
 )
 
-# Convertir 'Suma Predicciones' a tipo float para evitar errores futuros
-df_filtrado['Suma Predicciones'] = df_filtrado['Suma Predicciones'].astype(float)
+# Validar y asegurar que 'Suma Predicciones' no tenga valores no numéricos
+# Esto asegura que la conversión a float no falle
+df_filtrado['Suma Predicciones'] = pd.to_numeric(df_filtrado['Suma Predicciones'], errors='coerce').fillna(0)
 
 # Inicializar columnas de Estado y Acción
 df_filtrado['Estado Inventario'] = None
