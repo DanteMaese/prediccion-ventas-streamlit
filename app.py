@@ -32,9 +32,9 @@ def procesar_datos(df_TS):
     monthly_df = monthly_df.set_index('Fecha')
     return monthly_df
 
-# --- Selector de Campus ---
-# Obtener lista única de campus
-lista_campus = sorted(df_TS['Campus'].dropna().unique())
+# Selector de Campus
+# Obtener lista única de campus directamente desde `df`
+lista_campus = sorted(df['Campus'].dropna().unique())
 
 # Mostrar selector de campus
 campus_seleccionado = st.selectbox(
@@ -45,10 +45,12 @@ campus_seleccionado = st.selectbox(
 
 # Validar selección de campus
 if campus_seleccionado == "Campus":
+    st.warning("Por favor, selecciona un campus para continuar.")
     st.stop()
 
-# Filtrar datos según el campus seleccionado
-monthly_df = monthly_df[monthly_df['Campus'] == campus_seleccionado]
+# Filtrar `df_TS` y procesar datos del campus seleccionado
+df_TS = df_TS[df_TS['Campus'] == campus_seleccionado]
+monthly_df = procesar_datos(df_TS)
 
 @st.cache_data
 def generar_predicciones(monthly_df):
