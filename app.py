@@ -123,9 +123,12 @@ fechas_mapeo = {
 }
 forecast_consolidado.rename(columns=fechas_mapeo, inplace=True)
 
-# Asegurarse de que GTIN en ambos DataFrames esté en el mismo formato
-forecast_consolidado['GTIN'] = forecast_consolidado['GTIN'].astype('int64')
-stock_df['GTIN'] = stock_df['GTIN'].astype('int64')
+# Asegurarse de que 'GTIN' en forecast_consolidado sea numérico y convertirlo a int
+forecast_consolidado['GTIN'] = pd.to_numeric(forecast_consolidado['GTIN'], errors='coerce').fillna(0).astype('int64')
+
+# Asegurarse de que 'GTIN' en stock_df sea numérico y convertirlo a int
+stock_df['GTIN'] = pd.to_numeric(stock_df['GTIN'], errors='coerce').fillna(0).astype('int64')
+
 
 # Realizar el join para agregar el stock
 forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], on='GTIN', how='left')
