@@ -73,6 +73,19 @@ def generar_predicciones(monthly_df):
         forecast_list.append(forecast_df)
     return pd.concat(forecast_list).reset_index(drop=True)
 
+# Inicio Parte 2
+
+# --- Cargar y procesar los datos usando las funciones cacheadas ---
+df, df_TS = cargar_datos(campus_seleccionado)  # Pasar el campus seleccionado
+monthly_df = procesar_datos(df_TS)
+forecast_df = generar_predicciones(monthly_df)
+
+# Extraer las columnas únicas de GTIN, Producto y Categoría para el join
+info_producto = df[['GTIN', 'Producto', 'Categoría']].drop_duplicates()
+
+# Realizar el join para agregar Producto y Categoría a forecast_df
+forecast_df = forecast_df.merge(info_producto, on='GTIN', how='left')
+
 # Final Parte 2
 
 # Inicio Parte 3
