@@ -246,30 +246,83 @@ df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
 # Reemplazar valores NaN en columnas relevantes
 df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0.00)
 
-##### ###### Cálculo de Unidades para Rematar ###### ######
+##### Cálculo basado en las Reglas de Negocio ######
 
-# Calcular el promedio mensual basado en predicciones y piezas vendidas (historico)
-df_filtrado['Promedio Mensual'] = (
-    df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1) +
-    df_filtrado['Piezas_Vendidas'].astype(float)
-) / 12
+# # Calcular el promedio mensual basado en predicciones y piezas vendidas (historico)
+# df_filtrado['Promedio Mensual'] = (
+#     df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1) +
+#     df_filtrado['Piezas_Vendidas'].astype(float)
+# ) / 12
 
-# Excedente de Inventario Actual - Excedente = Stock - (Promedio Mensual * 6). Si este excedente es mayor a 0, se consideran estas unidades como rematables.
-df_filtrado['Unidades para Rematar'] = (
-    df_filtrado['Stock'].astype(float) - (df_filtrado['Promedio Mensual'] * 6)
-).clip(lower=0)  # Evitar valores negativos
+# # Excedente de Inventario Actual - Excedente = Stock - (Promedio Mensual * 6). Si este excedente es mayor a 0, se consideran estas unidades como rematables.
+# df_filtrado['Unidades para Rematar'] = (
+#     df_filtrado['Stock'].astype(float) - (df_filtrado['Promedio Mensual'] * 6)
+# ).clip(lower=0)  # Evitar valores negativos
 
-# Precio de Remate por Unidad:
-df_filtrado['Precio de Remate por Unidad'] = (
-    (df_filtrado['Precio_Unitario'] - df_filtrado['Costo_Unitario']) * 0.8
-).clip(lower=0)  # Evitar precios negativos
+# # Precio de Remate por Unidad:
+# df_filtrado['Precio de Remate por Unidad'] = (
+#     (df_filtrado['Precio_Unitario'] - df_filtrado['Costo_Unitario']) * 0.8
+# ).clip(lower=0)  # Evitar precios negativos
 
-# Total a Generar por Remate:
-df_filtrado['Total a Generar por Remate'] = (
-    df_filtrado['Unidades para Rematar'] * df_filtrado['Precio de Remate por Unidad']
+# # Total a Generar por Remate:
+# df_filtrado['Total a Generar por Remate'] = (
+#     df_filtrado['Unidades para Rematar'] * df_filtrado['Precio de Remate por Unidad']
+# )
+
+
+# Calcular la suma de las predicciones de los próximos tres meses
+df_filtrado['Suma Predicciones'] = (
+    df_filtrado['Pred. Sep 2024'] +
+    df_filtrado['Pred. Oct 2024'] +
+    df_filtrado['Pred. Nov 2024']
 )
 
-##### ###### Cálculo de Unidades para Rematar ###### ######
+# Convertir 'Suma Predicciones' a tipo float
+df_filtrado['Suma Predicciones'] = pd.to_numeric(df_filtrado['Suma Predicciones'], errors='coerce').fillna(0)
+
+# Validar nuevamente los tipos de datos
+st.subheader("Tipos de Datos Después de la Conversión")
+st.write(df_filtrado[['Stock', 'Suma Predicciones']].dtypes)
+
+# Inicializar columnas de Estado y Acción
+df_filtrado['Estado Inventario'] = None
+df_filtrado['Acción Recomendada'] = None
+
+# SAFE ZONE
+df_filtrado.loc[
+    (df_filtrado['Stock'] >= 1.1 * df_filtrado['Suma Predicciones']) & 
+    (df_filtrado['Stock'] <= 1.3 * df_filtrado['Suma Predicciones']),
+    ['Estado Inventario', 'Acción Recomendada']
+] = ["SAFE ZONE", "Inventario correcto"]
+
+# COMPRA
+compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
+
+# Calcular cuántas piezas comprar
+piezas_a_comprar = (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).clip(lower=0)
+
+# Si el stock es cero, comprar al menos la suma de predicciones
+piezas_a_comprar.loc[df_filtrado['Stock'] == 0] = df_filtrado['Suma Predicciones']
+
+# Asignar estado y acción recomendada para la condición de compra
+df_filtrado.loc[compra_condicion, 'Estado Inventario'] = "COMPRA"
+df_filtrado.loc[compra_condicion, 'Acción Recomendada'] = (
+    "Compra " + piezas_a_comprar[compra_condicion].round(2).astype(str) + " piezas"
+)
+
+# VENDE
+vende_condicion = df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones']
+
+# Calcular cuántas piezas rematar
+piezas_a_rematar = (df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']).clip(lower=0)
+
+# Asignar estado y acción recomendada para la condición de venta
+df_filtrado.loc[vende_condicion, 'Estado Inventario'] = "VENDE"
+df_filtrado.loc[vende_condicion, 'Acción Recomendada'] = (
+    "Remata " + piezas_a_rematar[vende_condicion].round(2).astype(str) + " piezas"
+)
+
+##### Fin de Cálculo basado en las Reglas de Negocio ######
 
 # Formatear columnas para visualización
 columnas_formatear = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
