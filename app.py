@@ -118,19 +118,23 @@ stock_df = cargar_stock()
 # )
 
 def transformar_predicciones(forecast_df):
-    # Asegúrate de que las fechas están en formato datetime
+    # Asegurar que las fechas están en formato datetime
     forecast_df['Fecha'] = pd.to_datetime(forecast_df['Fecha'], errors='coerce')
 
-    # Crear un DataFrame en formato ancho usando pivot
-    predicciones_ancho = forecast_df.pivot(index=['GTIN', 'Campus'], columns='Fecha', values='Predicción de Unidades')
+    # Verificar duplicados y eliminarlos
+    forecast_df = forecast_df.drop_duplicates(subset=['GTIN', 'Campus', 'Fecha'])
 
-    # Renombrar columnas para mayor claridad
+    # Reorganizar las filas con fechas como columnas usando un pivot manual
+    # Agrupamos para garantizar que cada combinación sea única antes de transformar
+    predicciones_ancho = forecast_df.set_index(['GTIN', 'Campus', 'Fecha'])['Predicción de Unidades'].unstack()
+
+    # Renombrar columnas para mayor claridad (Ejemplo: '2024-09-30' -> 'Pred. Sep 2024')
     predicciones_ancho.columns = predicciones_ancho.columns.strftime('Pred. %b %Y')
 
     # Completar valores nulos con ceros
     predicciones_ancho = predicciones_ancho.fillna(0)
 
-    # Resetear el índice para prepararlo para el merge
+    # Resetear el índice para devolverlo a un formato tabular
     return predicciones_ancho.reset_index()
 
 # Aplicar la transformación
