@@ -268,12 +268,8 @@ df_filtrado['Suma Predicciones'] = (
     df_filtrado['Pred. Nov 2024']
 )
 
-# Convertir 'Suma Predicciones' a tipo float
-df_filtrado['Suma Predicciones'] = pd.to_numeric(df_filtrado['Suma Predicciones'], errors='coerce').fillna(0)
-
-# Validar nuevamente los tipos de datos
-st.subheader("Tipos de Datos Después de la Conversión")
-st.write(df_filtrado[['Stock', 'Suma Predicciones']].dtypes)
+# Convertir 'Suma Predicciones' a tipo float para evitar errores futuros
+df_filtrado['Suma Predicciones'] = df_filtrado['Suma Predicciones'].astype(float)
 
 # Inicializar columnas de Estado y Acción
 df_filtrado['Estado Inventario'] = None
@@ -292,7 +288,7 @@ compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
 # Calcular cuántas piezas comprar
 piezas_a_comprar = (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).clip(lower=0)
 
-# Si el stock es cero, comprar al menos la suma de predicciones
+# Si el stock es cero, asegurarse de comprar al menos la suma de predicciones
 piezas_a_comprar.loc[df_filtrado['Stock'] == 0] = df_filtrado['Suma Predicciones']
 
 # Asignar estado y acción recomendada para la condición de compra
