@@ -43,7 +43,7 @@ lista_campus = sorted(df['Campus'].dropna().unique())
 # Mostrar selector de campus
 campus_seleccionado = st.selectbox(
     "Selecciona un campus para generar la predicción:",
-    options=["C"] + lista_campus,
+    options=["Campus"] + lista_campus,
     index=0
 )
 
@@ -72,6 +72,8 @@ def generar_predicciones(monthly_df):
         forecast_df['Predicción de Unidades'] = forecast_df['Predicción de Unidades'].clip(lower=0)
         forecast_list.append(forecast_df)
     return pd.concat(forecast_list).reset_index(drop=True)
+
+# Final Parte 1
 
 # Inicio Parte 2
 
@@ -130,6 +132,9 @@ forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], o
 
 # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
 forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
+
+# Crear el DataFrame inicial para aplicar filtros
+df_filtrado = forecast_consolidado.copy()
 
 # Filtros para Producto y Categoría
 productos_seleccionados = st.multiselect(
