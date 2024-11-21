@@ -181,7 +181,7 @@ else:
 
 # Inicio Parte 4
 
-# -- Plot 1: Comparación Total Predicciones vs. Stock --
+# --- Plot 1: Comparación Total Predicciones vs. Stock ---
 import plotly.graph_objects as go
 
 if not df_filtrado.empty:
@@ -196,7 +196,7 @@ if not df_filtrado.empty:
     fig.add_trace(go.Bar(
         x=["Unidades Predichas"],
         y=[total_predicciones],
-        text=[f"{total_predicciones:.2f}"],  # Texto dentro de la barra
+        text=[f"{total_predicciones:.2f}"],
         textposition='inside',
         name="Unidades Predichas",
         marker_color='blue'
@@ -214,7 +214,13 @@ if not df_filtrado.empty:
 
     # Configurar el diseño del gráfico
     fig.update_layout(
-        title="Comparación: Total Predicciones vs. Stock Disponible",
+        title={
+            'text': "Comparación: Total Predicciones vs. Stock Disponible",
+            'y': 0.9,
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
         xaxis_title="",
         yaxis_title="Unidades",
         barmode='group',
@@ -235,7 +241,7 @@ if not df_filtrado.empty:
 else:
     st.write("Por favor, selecciona un producto o categoría para visualizar las predicciones.")
 
-# --- Plot 2: Análisis de Liquidación con Métricas Adicionales ---
+# --- Plot 2: Análisis de Liquidación ---
 # Extraer las columnas necesarias del archivo original
 df_adicional = df[['GTIN', 'Piezas', 'Precio Unitario', 'Costo Unitario']].copy()
 
@@ -246,9 +252,9 @@ df_adicional = df_adicional.groupby('GTIN', as_index=False).agg(
     Costo_Unitario=('Costo Unitario', 'first')
 )
 
-# Asegurar que GTIN en ambos DataFrames sea del mismo tipo
-df_adicional['GTIN'] = pd.to_numeric(df_adicional['GTIN'], errors='coerce').fillna(0).astype('int64')
+# Asegurarnos de que GTIN en ambos DataFrames sea del mismo tipo
 df_filtrado['GTIN'] = pd.to_numeric(df_filtrado['GTIN'], errors='coerce').fillna(0).astype('int64')
+df_adicional['GTIN'] = pd.to_numeric(df_adicional['GTIN'], errors='coerce').fillna(0).astype('int64')
 
 # Merge para combinar la información adicional con df_filtrado
 df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
@@ -259,7 +265,7 @@ df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0.00)
 # Calcular el promedio mensual basado en predicciones y piezas vendidas (histórico)
 df_filtrado['Promedio Mensual'] = (
     df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']].astype(float).sum(axis=1) +
-    df_filtrado['Piezas_Vendidas'].astype(float).fillna(0)
+    df_filtrado['Piezas_Vendidas'].astype(float)
 ) / 12
 
 # Excedente de Inventario Actual - Excedente = Stock - (Promedio Mensual * 6)
@@ -277,24 +283,12 @@ df_filtrado['Total a Generar por Remate'] = (
     df_filtrado['Unidades para Rematar'] * df_filtrado['Precio de Remate por Unidad']
 )
 
-# Formatear columnas para visualización
-columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
-                         'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
-                         'Stock', 'Piezas_Vendidas', 'Precio_Unitario', 'Costo_Unitario',
-                         'Promedio Mensual', 'Unidades para Rematar', 'Precio de Remate por Unidad', 'Total a Generar por Remate']
-
-# Mostrar el DataFrame actualizado en Streamlit
-if not df_filtrado.empty:
-    st.subheader("Análisis de Liquidación con Métricas Adicionales")
-    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
-else:
-    st.write("No se encontraron datos para los filtros seleccionados.")
-
-# --- Gráfico de Análisis de Liquidación ---
+# Crear un DataFrame con solo los productos marcados para remate
 productos_a_rematar = df_filtrado[df_filtrado['Unidades para Rematar'] > 0]
 
+# Formatear y mostrar datos
 if not productos_a_rematar.empty:
-    # Crear un DataFrame para el gráfico (solo piezas vendidas, stock y unidades para rematar)
+    # Gráfico
     df_plot = productos_a_rematar[['Producto', 'Piezas_Vendidas', 'Stock', 'Unidades para Rematar']].copy()
 
     fig = px.bar(
@@ -320,5 +314,4 @@ if not productos_a_rematar.empty:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("No se encontraron productos con exceso de stock para liquidar.")
-
 # Final Parte 4
