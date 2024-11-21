@@ -247,8 +247,8 @@ df_adicional = df_adicional.groupby('GTIN', as_index=False).agg(
 )
 
 # Asegurar que GTIN en ambos DataFrames sea del mismo tipo
-df_filtrado['GTIN'] = df_filtrado['GTIN'].astype('int64')
-df_adicional['GTIN'] = df_adicional['GTIN'].astype('int64')
+df_adicional['GTIN'] = pd.to_numeric(df_adicional['GTIN'], errors='coerce').fillna(0).astype('int64')
+df_filtrado['GTIN'] = pd.to_numeric(df_filtrado['GTIN'], errors='coerce').fillna(0).astype('int64')
 
 # Merge para combinar la información adicional con df_filtrado
 df_filtrado = df_filtrado.merge(df_adicional, on='GTIN', how='left')
