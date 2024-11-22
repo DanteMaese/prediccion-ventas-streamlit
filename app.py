@@ -8,25 +8,26 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 # Definir la ruta del archivo como variable para facilidad de ajuste
 RUTA_ARCHIVO = "Ventas.xlsx"
 
-# # Título de Streamlit
-# st.title("TECStore - Detalle de ventas futuras y prescripción de inventarios")
+# Título de Streamlit
+st.title("TECStore - Detalle de ventas futuras y prescripción de inventarios")
 
-# Crear columnas para alinear el logo a la derecha
-col1, col2 = st.columns([4, 1])  # Ajustar proporciones según necesites
-
-with col1:
-    st.title("TECStore - Detalle de ventas futuras y prescripción de inventarios")  # Título o cualquier otro contenido
-
-with col2:
-    # Usar HTML para alinear el logo hacia la izquierda dentro de la columna derecha
-    st.markdown(
-        """
-        <div style="text-align: left; margin-top: 10px;">
-            <img src="logo.png" width="150">
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+# Usar HTML y CSS para posicionar el logo en la esquina superior izquierda
+st.markdown(
+    """
+    <style>
+    .logo-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        margin: 10px;
+    }
+    </style>
+    <div class="logo-container">
+        <img src="logo.png" width="150">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # --- Funciones de procesamiento con caché ---
 @st.cache_data
