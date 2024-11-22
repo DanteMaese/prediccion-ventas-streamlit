@@ -341,29 +341,6 @@ st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 
 # Inicio Part 5
 
-# # Filtrar el DataFrame según el producto seleccionado
-# if productos_seleccionados:
-#     df_filtrado = df_filtrado[df_filtrado['GTIN_Producto'].isin(productos_seleccionados)]
-
-# # Verificar si hay filas después del filtro
-# if not df_filtrado.empty:
-#     # Tomar las columnas relevantes
-#     columnas_para_mostrar = ['GTIN_Producto', 'Estado Inventario', 'Acción Recomendada']
-    
-#     # Seleccionar el primer producto del filtro como base para la tarjeta
-#     producto_base = df_filtrado.iloc[0]
-
-#     # Mostrar tarjeta para el producto seleccionado
-#     st.subheader(f"Detalles del Producto: {producto_base['GTIN_Producto']}")
-#     st.metric(
-#         label="Estado Inventario",
-#         value=producto_base['Estado Inventario']
-#     )
-#     st.metric(
-#         label="Acción Recomendada",
-#         value=producto_base['Acción Recomendada']
-#     )
-
 # Filtrar el DataFrame según el producto seleccionado
 if productos_seleccionados:
     df_filtrado = df_filtrado[df_filtrado['GTIN_Producto'].isin(productos_seleccionados)]
@@ -372,22 +349,19 @@ if productos_seleccionados:
 if not df_filtrado.empty:
     # Tomar las columnas relevantes
     columnas_para_mostrar = ['GTIN_Producto', 'Estado Inventario', 'Acción Recomendada']
+    
+    # Seleccionar el primer producto del filtro como base para la tarjeta
+    producto_base = df_filtrado.iloc[0]
 
-    # Iterar sobre las filas filtradas para generar una tarjeta por producto
-    for _, producto in df_filtrado.iterrows():
-        # Mostrar tarjeta para cada producto seleccionado
-        with st.container():
-            st.subheader(f"Detalles del Producto Seleccionado: {producto['GTIN_Producto']}")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric(
-                    label="Estado Inventario",
-                    value=producto['Estado Inventario']
-                )
-            with col2:
-                st.metric(
-                    label="Acción Recomendada",
-                    value=producto['Acción Recomendada']
-                )
+    # Mostrar tarjeta para el producto seleccionado
+    st.subheader(f"Detalles del Producto: {producto_base['GTIN_Producto']}")
+    st.metric(
+        label="Estado Inventario",
+        value=producto_base['Estado Inventario']
+    )
+    st.metric(
+        label="Acción Recomendada",
+        value=producto_base['Acción Recomendada']
+    )
 
 # Final Part 5
