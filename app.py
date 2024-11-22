@@ -329,14 +329,28 @@ st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 
 # Inicio Part 5
 
-# Resumen de estados
+# Agregar un filtro interactivo para Producto
+producto_seleccionado = st.selectbox(
+    "Selecciona un Producto:",
+    options=['Todos'] + df_filtrado['Producto'].unique().tolist()
+)
+
+# Filtrar el DataFrame según el producto seleccionado
+if producto_seleccionado != "Todos":
+    df_filtrado = df_filtrado[df_filtrado['Producto'] == producto_seleccionado]
+
+# Resumen de estados basados en el filtro
 resumen_estados = df_filtrado['Estado Inventario'].value_counts()
 
-# Mostrar tarjetas en Streamlit
+# Mostrar tarjetas dinámicas
 col1, col2, col3 = st.columns(3)
 
 col1.metric("Productos en SAFE ZONE", resumen_estados.get("SAFE ZONE", 0))
 col2.metric("Productos en COMPRA", resumen_estados.get("COMPRA", 0))
 col3.metric("Productos en VENDE", resumen_estados.get("VENDE", 0))
+
+# Mostrar el DataFrame filtrado
+st.subheader("Inventario Filtrado por Producto")
+st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 
 # Final Part 5
