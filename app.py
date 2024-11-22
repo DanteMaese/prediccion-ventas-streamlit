@@ -248,6 +248,13 @@ df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0.00)
 
 ##### Cálculo basado en las Reglas de Negocio ######
 
+# Convertir las columnas a float
+df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']] = (
+    df_filtrado[['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']]
+    .apply(pd.to_numeric, errors='coerce')  # Convertir a float; valores inválidos serán NaN
+    .fillna(0)  # Rellenar NaN con 0
+)
+
 # Crear la columna Suma Predicciones
 df_filtrado['Suma Predicciones'] = (
     df_filtrado['Pred. Sep 2024'] +
