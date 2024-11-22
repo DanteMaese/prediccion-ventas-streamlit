@@ -300,8 +300,18 @@ df_filtrado.loc[compra_condicion, 'Acción Recomendada'] = (
     "Compra " + piezas_a_comprar[compra_condicion].round(2).astype(str) + " piezas"
 )
 
+# VENDE
+# Condición: Stock mayor al 130% de la Suma de Predicciones
+vende_condicion = df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones']
 
+# Calcular las piezas a rematar
+piezas_a_rematar = (df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']).clip(lower=0)
 
+# Asignar Estado Inventario y Acción Recomendada
+df_filtrado.loc[vende_condicion, 'Estado Inventario'] = "VENDE"
+df_filtrado.loc[vende_condicion, 'Acción Recomendada'] = (
+    "Remata " + piezas_a_rematar[vende_condicion].round(2).astype(str) + " piezas"
+)
 
 ## Tabla ##
 # Actualizar la lista de columnas a mostrar
@@ -316,26 +326,4 @@ st.subheader("Tabla Completa de Inventario con Estados")
 st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 ## Tabla ##
 
-
-
-
-# # VENDE
-# vende_condicion = df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones']
-# piezas_a_rematar = (df_filtrado['Stock'] - 1.3 * df_filtrado['Suma Predicciones']).clip(lower=0)
-# df_filtrado.loc[vende_condicion, 'Estado Inventario'] = "VENDE"
-# df_filtrado.loc[vende_condicion, 'Acción Recomendada'] = (
-#     "Remata " + piezas_a_rematar[vende_condicion].round(2).astype(str) + " piezas"
-# )
-
-# ##### Fin de Cálculo basado en las Reglas de Negocio ######
-
-# # Mostrar el DataFrame actualizado
-# columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus',
-#                          'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
-#                          'Stock', 'Estado Inventario', 'Acción Recomendada']
-
-# if not df_filtrado.empty:
-#     st.subheader("Análisis de Inventario con Reglas de Negocio")
-#     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
-# else:
-#     st.write("No se encontraron datos para los filtros seleccionados.")
+# Final Parte 4
