@@ -8,26 +8,22 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 # Definir la ruta del archivo como variable para facilidad de ajuste
 RUTA_ARCHIVO = "Ventas.xlsx"
 
-# Título de Streamlit
-st.title("TECStore - Detalle de ventas futuras y prescripción de inventarios")
+# # Título de Streamlit
+# st.title("TECStore - Detalle de ventas futuras y prescripción de inventarios")
 
-# Usar HTML y CSS para posicionar el logo en la esquina superior izquierda
-st.markdown(
-    """
-    <style>
-    .logo-container {
-        position: absolute;
-        top: 0;
-        left: 0;
-        margin: 10px;
-    }
-    </style>
-    <div class="logo-container">
-        <img src="logo.png" width="150">
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# Crear columnas para dividir el espacio
+col1, col2 = st.columns([4, 1])  # Ajustar proporciones según sea necesario
+
+with col1:
+    st.title("TECStore - Detalle de ventas futuras y prescripción de inventarios")  # Contenido principal en la izquierda
+
+with col2:
+    # Insertar un espaciador invisible para alinear
+    st.write("")
+    st.write("")
+    # Agregar el logo
+    st.image("logo.png", width=150)
+
 
 # --- Funciones de procesamiento con caché ---
 @st.cache_data
