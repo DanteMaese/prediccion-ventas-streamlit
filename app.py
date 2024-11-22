@@ -374,10 +374,4 @@ if not df_filtrado.empty:
         value=producto_base['Acción Recomendada']
     )
 
-    # Mostrar la tabla filtrada con las columnas relevantes
-    st.subheader("Acciones del Producto Seleccionado")
-    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
-else:
-    st.warning("No se encontraron datos para el producto seleccionado.")
-
 # Final Part 5
