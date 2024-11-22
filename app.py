@@ -18,7 +18,15 @@ with col1:
     st.title("TECStore - Detalle de ventas futuras y prescripción de inventarios")  # Título o cualquier otro contenido
 
 with col2:
-    st.image("logo.png", width=150)  # Logo a la derecha
+    # Usar HTML para alinear el logo hacia la izquierda dentro de la columna derecha
+    st.markdown(
+        """
+        <div style="text-align: left; margin-top: 10px;">
+            <img src="logo.png" width="150">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # --- Funciones de procesamiento con caché ---
 @st.cache_data
