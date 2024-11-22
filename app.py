@@ -285,6 +285,22 @@ df_filtrado.loc[
     ['Estado Inventario', 'Acción Recomendada']
 ] = ["SAFE ZONE", "Inventario correcto"]
 
+# COMPRA
+compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
+
+# Calcular las piezas a comprar
+piezas_a_comprar = (
+    (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).clip(lower=0)
+    .where(df_filtrado['Stock'] != 0, df_filtrado['Suma Predicciones'])  # Si Stock es 0, compra al menos la Suma Predicciones
+)
+
+# Asignar Estado Inventario y Acción Recomendada
+df_filtrado.loc[compra_condicion, 'Estado Inventario'] = "COMPRA"
+df_filtrado.loc[compra_condicion, 'Acción Recomendada'] = (
+    "Compra " + piezas_a_comprar[compra_condicion].round(2).astype(str) + " piezas"
+)
+
+
 
 
 ## Tabla ##
@@ -301,20 +317,7 @@ st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 ## Tabla ##
 
 
-# # COMPRA
-# compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
 
-# # Calcular cuántas piezas comprar, considerando la condición especial para stock cero
-# piezas_a_comprar = (
-#     (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).clip(lower=0)
-#     .where(df_filtrado['Stock'] != 0, df_filtrado['Suma Predicciones'])
-# )
-
-# # Asignar estado y acción recomendada para la condición de compra
-# df_filtrado.loc[compra_condicion, 'Estado Inventario'] = "COMPRA"
-# df_filtrado.loc[compra_condicion, 'Acción Recomendada'] = (
-#     "Compra " + piezas_a_comprar[compra_condicion].round(2).astype(str) + " piezas"
-# )
 
 # # VENDE
 # vende_condicion = df_filtrado['Stock'] > 1.3 * df_filtrado['Suma Predicciones']
