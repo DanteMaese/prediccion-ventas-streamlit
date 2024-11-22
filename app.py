@@ -260,7 +260,7 @@ st.subheader("Tabla de Inventario con Predicciones y Estado")
 columnas_para_mostrar = [
     'GTIN', 'Producto', 'Categoría', 'Campus', 
     'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
-    'Suma Predicciones', 'Stock', 'Estado Inventario', 'Acción Recomendada'
+    'Suma Predicciones', 'Stock'
 ]
 
 # Mostrar DataFrame en Streamlit
