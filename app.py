@@ -130,34 +130,34 @@ categorias_seleccionadas = st.multiselect(
     options=forecast_consolidado['Categoría'].unique()
 )
 
-# Aplicar los filtros al DataFrame consolidado
-df_filtrado = forecast_consolidado.copy()
+# # Aplicar los filtros al DataFrame consolidado
+# df_filtrado = forecast_consolidado.copy()
 
-if productos_seleccionados:
-    df_filtrado = df_filtrado[df_filtrado['Producto'].isin(productos_seleccionados)]
+# if productos_seleccionados:
+#     df_filtrado = df_filtrado[df_filtrado['Producto'].isin(productos_seleccionados)]
 
-if categorias_seleccionadas:
-    df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(categorias_seleccionadas)]
+# if categorias_seleccionadas:
+#     df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(categorias_seleccionadas)]
 
-# Seleccionar columnas relevantes
-columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
+# # Seleccionar columnas relevantes
+# columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
 
-# Formatear y mostrar el DataFrame
-if not df_filtrado.empty:
-    st.subheader("Predicción Consolidada para los Filtros Seleccionados")
+# # Formatear y mostrar el DataFrame
+# if not df_filtrado.empty:
+#     st.subheader("Predicción Consolidada para los Filtros Seleccionados")
     
-    # Convertir el GTIN a string para evitar formato numérico con comas
-    df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
+#     # Convertir el GTIN a string para evitar formato numérico con comas
+#     df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
     
-    # Formatear columnas de predicciones para mostrar dos decimales
-    columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
-    for columna in columnas_prediccion:
-        df_filtrado[columna] = df_filtrado[columna].map("{:.2f}".format)
+#     # Formatear columnas de predicciones para mostrar dos decimales
+#     columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
+#     for columna in columnas_prediccion:
+#         df_filtrado[columna] = df_filtrado[columna].map("{:.2f}".format)
     
-    # Mostrar el DataFrame con formato mejorado
-    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
-else:
-    st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
+#     # Mostrar el DataFrame con formato mejorado
+#     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+# else:
+#     st.write("No se encontraron predicciones que coincidan con los filtros seleccionados.")
     
 # Final Parte 3
 
