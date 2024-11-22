@@ -288,19 +288,18 @@ df_filtrado.loc[
 
 
 ## Tabla ##
+# Actualizar la lista de columnas a mostrar
+columnas_para_mostrar = [
+    'GTIN', 'Producto', 'Categoría', 'Campus', 
+    'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 
+    'Suma Predicciones', 'Stock', 'Estado Inventario', 'Acción Recomendada'
+]
 
 # Mostrar DataFrame completo en Streamlit
-st.subheader("Tabla Completa de Inventario")
+st.subheader("Tabla Completa de Inventario con Estados")
 st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+## Tabla ##
 
-# Filtrar y mostrar solo las filas con 'SAFE ZONE'
-safe_zone_df = df_filtrado[df_filtrado['Estado Inventario'] == "SAFE ZONE"]
-
-if not safe_zone_df.empty:
-    st.subheader("Filas en SAFE ZONE")
-    st.dataframe(safe_zone_df[columnas_para_mostrar], use_container_width=True)
-else:
-    st.write("No hay filas en SAFE ZONE.")
 
 # # COMPRA
 # compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
