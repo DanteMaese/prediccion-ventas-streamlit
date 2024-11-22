@@ -252,10 +252,10 @@ df_filtrado['Stock'] = df_filtrado['Stock'].fillna(0.00)
 df_filtrado['Suma Predicciones'] = pd.to_numeric(
     df_filtrado['Pred. Sep 2024'] +
     df_filtrado['Pred. Oct 2024'] +
-    df_filtrado['Pred. Nov 2024']
-#     ,
-#     errors='coerce'
-# ).fillna(0)
+    df_filtrado['Pred. Nov 2024'],
+    errors='coerce'
+)
+#.fillna(0)
 
 df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
 
