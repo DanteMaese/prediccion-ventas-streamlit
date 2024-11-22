@@ -130,10 +130,18 @@ forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], o
 # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
 forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
 
-# Filtros para Producto y Categoría
+## Nuevo
+forecast_consolidado['GTIN_Producto'] = forecast_consolidado['GTIN'].astype(str) + " - " + forecast_consolidado['Producto']
+
+# # Filtros para Producto y Categoría
+# productos_seleccionados = st.multiselect(
+#     "Escribe o selecciona uno o varios productos:",
+#     options=sorted(forecast_consolidado['Producto'].unique())  # Ordenar productos alfabéticamente
+# )
+
 productos_seleccionados = st.multiselect(
-    "Escribe o selecciona uno o varios productos:",
-    options=sorted(forecast_consolidado['Producto'].unique())  # Ordenar productos alfabéticamente
+    "Escribe o selecciona uno o varios productos (GTIN + Producto):",
+    options=sorted(forecast_consolidado['GTIN_Producto'].unique())  # Ordenar productos alfabéticamente
 )
 
 categorias_seleccionadas = st.multiselect(
@@ -144,8 +152,11 @@ categorias_seleccionadas = st.multiselect(
 # Aplicar los filtros al DataFrame consolidado
 df_filtrado = forecast_consolidado.copy()
 
+# if productos_seleccionados:
+#     df_filtrado = df_filtrado[df_filtrado['Producto'].isin(productos_seleccionados)]
+
 if productos_seleccionados:
-    df_filtrado = df_filtrado[df_filtrado['Producto'].isin(productos_seleccionados)]
+    df_filtrado = df_filtrado[df_filtrado['GTIN_Producto'].isin(productos_seleccionados)]
 
 if categorias_seleccionadas:
     df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(categorias_seleccionadas)]
