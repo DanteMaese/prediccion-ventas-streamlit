@@ -292,8 +292,14 @@ df_filtrado.loc[
 
 # COMPRA
 compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
-piezas_a_comprar = (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).clip(lower=0)
-piezas_a_comprar.loc[df_filtrado['Stock'] == 0] = df_filtrado['Suma Predicciones']
+
+# Calcular cuántas piezas comprar, considerando la condición especial para stock cero
+piezas_a_comprar = (
+    (1.1 * df_filtrado['Suma Predicciones'] - df_filtrado['Stock']).clip(lower=0)
+    .where(df_filtrado['Stock'] != 0, df_filtrado['Suma Predicciones'])
+)
+
+# Asignar estado y acción recomendada para la condición de compra
 df_filtrado.loc[compra_condicion, 'Estado Inventario'] = "COMPRA"
 df_filtrado.loc[compra_condicion, 'Acción Recomendada'] = (
     "Compra " + piezas_a_comprar[compra_condicion].round(2).astype(str) + " piezas"
