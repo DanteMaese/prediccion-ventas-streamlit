@@ -329,18 +329,33 @@ st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 
 # Inicio Part 5
 
-# Resumen de estados basados en los filtros existentes
-resumen_estados = df_filtrado['Estado Inventario'].value_counts()
+# Filtrar el DataFrame según el producto seleccionado
+if productos_seleccionados:
+    df_filtrado = df_filtrado[df_filtrado['Producto'].isin(productos_seleccionados)]
 
-# Mostrar tarjetas dinámicas
-col1, col2, col3 = st.columns(3)
+# Verificar si hay filas después del filtro
+if not df_filtrado.empty:
+    # Tomar las columnas relevantes
+    columnas_para_mostrar = ['Estado Inventario', 'Acción Recomendada']
+    
+    # Seleccionar el primer producto del filtro como base para la tarjeta
+    producto_base = df_filtrado.iloc[0]
 
-col1.metric("Productos en SAFE ZONE", resumen_estados.get("SAFE ZONE", 0))
-col2.metric("Productos en COMPRA", resumen_estados.get("COMPRA", 0))
-col3.metric("Productos en VENDE", resumen_estados.get("VENDE", 0))
+    # Mostrar tarjeta para el producto seleccionado
+    st.subheader(f"Detalles del Producto: {producto_base['Producto']}")
+    st.metric(
+        label="Estado Inventario",
+        value=producto_base['Estado Inventario']
+    )
+    st.metric(
+        label="Acción Recomendada",
+        value=producto_base['Acción Recomendada']
+    )
 
-# Mostrar el DataFrame filtrado en Streamlit
-st.subheader("Inventario Filtrado por los Filtros Aplicados")
-st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+    # Mostrar tabla filtrada con las columnas relevantes
+    st.subheader("Acciones del Producto Seleccionado")
+    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+else:
+    st.warning("No hay datos para el producto seleccionado.")
 
 # Final Part 5
