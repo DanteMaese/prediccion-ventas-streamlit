@@ -8,9 +8,6 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 # Definir la ruta del archivo como variable para facilidad de ajuste
 RUTA_ARCHIVO = "Ventas.xlsx"
 
-# # Título de Streamlit
-# st.title("TECStore - Detalle de ventas futuras y prescripción de inventarios")
-
 # Crear columnas para dividir el espacio
 col1, col2 = st.columns([4, 1])  # Ajustar proporciones según sea necesario
 
