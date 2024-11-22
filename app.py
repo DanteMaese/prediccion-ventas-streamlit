@@ -270,29 +270,24 @@ columnas_para_mostrar = [
     'Suma Predicciones', 'Stock'
 ]
 
+# Inicializar columnas
+df_filtrado['Estado Inventario'] = None
+df_filtrado['Acción Recomendada'] = None
+
+# Asegurar que 'Stock' y 'Suma Predicciones' sean numéricos
+df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
+df_filtrado['Suma Predicciones'] = pd.to_numeric(df_filtrado['Suma Predicciones'], errors='coerce').fillna(0)
+
+# Aplicar la condición SAFE ZONE
+df_filtrado.loc[
+    (df_filtrado['Stock'] >= 1.1 * df_filtrado['Suma Predicciones']) & 
+    (df_filtrado['Stock'] <= 1.3 * df_filtrado['Suma Predicciones']),
+    ['Estado Inventario', 'Acción Recomendada']
+] = ["SAFE ZONE", "Inventario correcto"]
+
 # Mostrar DataFrame en Streamlit
 st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 
-# # Asegurar tipos de datos antes de cálculos
-# df_filtrado['Suma Predicciones'] = pd.to_numeric(
-#     df_filtrado['Pred. Sep 2024'] +
-#     df_filtrado['Pred. Oct 2024'] +
-#     df_filtrado['Pred. Nov 2024'],
-#     errors='coerce'
-# ).fillna(0)
-
-# df_filtrado['Stock'] = pd.to_numeric(df_filtrado['Stock'], errors='coerce').fillna(0)
-
-# # Inicializar columnas
-# df_filtrado['Estado Inventario'] = None
-# df_filtrado['Acción Recomendada'] = None
-
-# # SAFE ZONE
-# df_filtrado.loc[
-#     (df_filtrado['Stock'] >= 1.1 * df_filtrado['Suma Predicciones']) & 
-#     (df_filtrado['Stock'] <= 1.3 * df_filtrado['Suma Predicciones']),
-#     ['Estado Inventario', 'Acción Recomendada']
-# ] = ["SAFE ZONE", "Inventario correcto"]
 
 # # COMPRA
 # compra_condicion = df_filtrado['Stock'] < 1.1 * df_filtrado['Suma Predicciones']
