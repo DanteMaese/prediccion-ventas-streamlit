@@ -263,7 +263,6 @@ df_filtrado['Suma Predicciones'] = (
 ).fillna(0)
 
 # Mostrar la tabla con la columna Suma Predicciones incluida
-st.subheader("Tabla de Inventario con Predicciones y Estado")
 columnas_para_mostrar = [
     'GTIN', 'Producto', 'Categoría', 'Campus', 
     'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024',
@@ -322,7 +321,7 @@ columnas_para_mostrar = [
 ]
 
 # Mostrar DataFrame completo en Streamlit
-st.subheader("Tabla Completa de Inventario con Estados")
+st.subheader("Reglas Prescriptivas de Negocio")
 st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 ## Tabla ##
 
