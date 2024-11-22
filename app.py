@@ -329,22 +329,14 @@ st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 
 # Inicio Part 5
 
-import plotly.express as px
+# Resumen de estados
+resumen_estados = df_filtrado['Estado Inventario'].value_counts()
 
-# Crear un DataFrame para el gráfico
-estado_counts = df_filtrado['Estado Inventario'].value_counts().reset_index()
-estado_counts.columns = ['Estado', 'Cantidad']
+# Mostrar tarjetas en Streamlit
+col1, col2, col3 = st.columns(3)
 
-# Gráfico circular
-fig_pie = px.pie(
-    estado_counts,
-    names='Estado',
-    values='Cantidad',
-    title="Distribución de Estados de Inventario",
-    color_discrete_sequence=px.colors.sequential.RdBu
-)
-
-# Mostrar en Streamlit
-st.plotly_chart(fig_pie, use_container_width=True)
+col1.metric("Productos en SAFE ZONE", resumen_estados.get("SAFE ZONE", 0))
+col2.metric("Productos en COMPRA", resumen_estados.get("COMPRA", 0))
+col3.metric("Productos en VENDE", resumen_estados.get("VENDE", 0))
 
 # Final Part 5
