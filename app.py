@@ -353,18 +353,18 @@ st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
 
 # Filtrar el DataFrame según el producto seleccionado
 if productos_seleccionados:
-    df_filtrado = df_filtrado[df_filtrado['Producto'].isin(productos_seleccionados)]
+    df_filtrado = df_filtrado[df_filtrado['GTIN_Producto'].isin(productos_seleccionados)]
 
 # Verificar si hay filas después del filtro
 if not df_filtrado.empty:
     # Tomar las columnas relevantes
-    columnas_para_mostrar = ['Estado Inventario', 'Acción Recomendada']
+    columnas_para_mostrar = ['GTIN_Producto', 'Estado Inventario', 'Acción Recomendada']
     
     # Seleccionar el primer producto del filtro como base para la tarjeta
     producto_base = df_filtrado.iloc[0]
 
     # Mostrar tarjeta para el producto seleccionado
-    st.subheader(f"Detalles del Producto: {producto_base['Producto']}")
+    st.subheader(f"Detalles del Producto: {producto_base['GTIN_Producto']}")
     st.metric(
         label="Estado Inventario",
         value=producto_base['Estado Inventario']
@@ -373,5 +373,11 @@ if not df_filtrado.empty:
         label="Acción Recomendada",
         value=producto_base['Acción Recomendada']
     )
+
+    # Mostrar la tabla filtrada con las columnas relevantes
+    st.subheader("Acciones del Producto Seleccionado")
+    st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
+else:
+    st.warning("No se encontraron datos para el producto seleccionado.")
 
 # Final Part 5
