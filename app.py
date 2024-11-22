@@ -353,7 +353,7 @@ if not df_filtrado.empty:
     # Iterar sobre las filas filtradas para generar una tarjeta por producto
     for _, producto in df_filtrado.iterrows():
         # Mostrar tarjeta para cada producto seleccionado
-        st.subheader(f"Detalles del Producto: {producto['GTIN_Producto']}")
+        st.subheader(f"Detalles del Producto Seleccionado: {producto['GTIN_Producto']}")
         st.metric(
             label="Estado Inventario",
             value=producto['Estado Inventario']
