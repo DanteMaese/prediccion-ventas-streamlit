@@ -130,7 +130,7 @@ forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], o
 # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
 forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
 
-######### PRUEBA ########
+######### Update 11.24.2024 #########
 
 # Filtros dinámicos para Producto y Categoría
 
@@ -164,9 +164,9 @@ if categorias_seleccionadas:
 if productos_seleccionados:
     df_filtrado = df_filtrado[df_filtrado['GTIN_Producto'].isin(productos_seleccionados)]
 
-######### PRUEBA ########
+######### Update 11.24.2024 #########
 
-########
+######## Anterior ########
 
 # # Filtros para Producto y Categoría
 # forecast_consolidado['GTIN_Producto'] = forecast_consolidado['GTIN'].astype(str) + " - " + forecast_consolidado['Producto']
@@ -204,7 +204,7 @@ if productos_seleccionados:
 #     for columna in columnas_prediccion:
 #         df_filtrado[columna] = df_filtrado[columna].map("{:.2f}".format)
 
-######
+######## Anterior ########
     
 #     # Mostrar el DataFrame con formato mejorado
 #     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
