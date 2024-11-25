@@ -130,41 +130,81 @@ forecast_consolidado = forecast_consolidado.merge(stock_df[['GTIN', 'Stock']], o
 # Asegurarse de que la columna 'Producto' no tenga valores nulos y convertir a string
 forecast_consolidado['Producto'] = forecast_consolidado['Producto'].fillna("").astype(str)
 
-# Filtros para Producto y Categoría
+######### PRUEBA ########
+
+# Filtros dinámicos para Producto y Categoría
+
 forecast_consolidado['GTIN_Producto'] = forecast_consolidado['GTIN'].astype(str) + " - " + forecast_consolidado['Producto']
+
+# Crear copias para opciones dinámicas
+productos_opciones = sorted(forecast_consolidado['GTIN_Producto'].unique())
+categorias_opciones = forecast_consolidado['Categoría'].unique()
+
+# Seleccionar categorías primero
+categorias_seleccionadas = st.multiselect(
+    "Escribe o selecciona una o varias categorías:",
+    options=categorias_opciones
+)
+
+# Filtrar los productos basados en las categorías seleccionadas
+if categorias_seleccionadas:
+    productos_opciones = forecast_consolidado[forecast_consolidado['Categoría'].isin(categorias_seleccionadas)]['GTIN_Producto'].unique()
 
 productos_seleccionados = st.multiselect(
     "Escribe o selecciona uno o varios productos (GTIN + Producto):",
-    options=sorted(forecast_consolidado['GTIN_Producto'].unique())  # Ordenar productos alfabéticamente
-)
-
-categorias_seleccionadas = st.multiselect(
-    "Escribe o selecciona una o varias categorías:",
-    options=forecast_consolidado['Categoría'].unique()
+    options=sorted(productos_opciones)
 )
 
 # Aplicar los filtros al DataFrame consolidado
 df_filtrado = forecast_consolidado.copy()
 
-if productos_seleccionados:
-    df_filtrado = df_filtrado[df_filtrado['GTIN_Producto'].isin(productos_seleccionados)]
-
 if categorias_seleccionadas:
     df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(categorias_seleccionadas)]
 
-# Seleccionar columnas relevantes
-columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
+if productos_seleccionados:
+    df_filtrado = df_filtrado[df_filtrado['GTIN_Producto'].isin(productos_seleccionados)]
 
-# Formatear y mostrar el DataFrame
-if not df_filtrado.empty:
+######### PRUEBA ########
+
+########
+
+# # Filtros para Producto y Categoría
+# forecast_consolidado['GTIN_Producto'] = forecast_consolidado['GTIN'].astype(str) + " - " + forecast_consolidado['Producto']
+
+# productos_seleccionados = st.multiselect(
+#     "Escribe o selecciona uno o varios productos (GTIN + Producto):",
+#     options=sorted(forecast_consolidado['GTIN_Producto'].unique())  # Ordenar productos alfabéticamente
+# )
+
+# categorias_seleccionadas = st.multiselect(
+#     "Escribe o selecciona una o varias categorías:",
+#     options=forecast_consolidado['Categoría'].unique()
+# )
+
+# # Aplicar los filtros al DataFrame consolidado
+# df_filtrado = forecast_consolidado.copy()
+
+# if productos_seleccionados:
+#     df_filtrado = df_filtrado[df_filtrado['GTIN_Producto'].isin(productos_seleccionados)]
+
+# if categorias_seleccionadas:
+#     df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(categorias_seleccionadas)]
+
+# # Seleccionar columnas relevantes
+# columnas_para_mostrar = ['GTIN', 'Producto', 'Categoría', 'Campus', 'Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024', 'Stock']
+
+# # Formatear y mostrar el DataFrame
+# if not df_filtrado.empty:
     
-    # Convertir el GTIN a string para evitar formato numérico con comas
-    df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
+#     # Convertir el GTIN a string para evitar formato numérico con comas
+#     df_filtrado['GTIN'] = df_filtrado['GTIN'].astype(str)
     
-    # Formatear columnas de predicciones para mostrar dos decimales
-    columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
-    for columna in columnas_prediccion:
-        df_filtrado[columna] = df_filtrado[columna].map("{:.2f}".format)
+#     # Formatear columnas de predicciones para mostrar dos decimales
+#     columnas_prediccion = ['Pred. Sep 2024', 'Pred. Oct 2024', 'Pred. Nov 2024']
+#     for columna in columnas_prediccion:
+#         df_filtrado[columna] = df_filtrado[columna].map("{:.2f}".format)
+
+######
     
 #     # Mostrar el DataFrame con formato mejorado
 #     st.dataframe(df_filtrado[columnas_para_mostrar], use_container_width=True)
